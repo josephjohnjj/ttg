@@ -2,6 +2,8 @@ include(AddTTGExecutable)
 
 add_ttg_executable(test test/test.cc)
 add_ttg_executable(t9 t9/t9.cc)
+add_ttg_executable(uts uts/uts.cc uts/rng/brg_sha1.c uts/rng/brg_sha1.h LINK_LIBRARIES MADworld)
+
 
 # sparse matmul
 if (TARGET eigen3)
