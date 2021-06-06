@@ -1,5 +1,6 @@
 #include <array>
 #include <cmath>
+#include <cstdio>
 #include "ttg.h"
 using namespace ttg;
 #include <madness/world/world.h>
@@ -86,7 +87,7 @@ std::ostream& operator<<(std::ostream& s, const Key& key) {
 }
 
 
-auto make_node(ttg::Edge<Key, std::array<char, 20>>& in_edge, ttg::Edge<Key, std::array<char, 20>>& out_edge) {
+auto make_node(ttg::Edge<Key, std::array<char, 20>>& edge) {
   auto f =
       [=](const Key& key, 
           std::array<char, 20> par_state_array, 
@@ -98,6 +99,9 @@ auto make_node(ttg::Edge<Key, std::array<char, 20>>& in_edge, ttg::Edge<Key, std
         std::array<char, 20> my_state_array;
 
         auto [l, n, s, h] = key;
+
+        //std::cout<<"node("<< l <<", "<< n << ")" << std::endl;
+        printf("node(%d, %d) \n", l, n);
 
         for (int j = 0; j < par_state_array.size(); j++)
           par_state_char[j] = par_state_array[j];  // task receives at std::array. convert it to char*
@@ -121,13 +125,13 @@ auto make_node(ttg::Edge<Key, std::array<char, 20>>& in_edge, ttg::Edge<Key, std
         }
       };
 
-  return ttg::wrap<Key>(f, ttg::edges(in_edge), ttg::edges(out_edge), "NODE");
+  return ttg::wrap<Key>(f, ttg::edges(edge), ttg::edges(edge), "NODE", {"input_edge"}, {"output_edge"});
 }
 
 
-auto root(ttg::Edge<Key, std::array<char, 20>>& out_edge) {
+auto root(ttg::Edge<Key, std::array<char, 20>>& edge) {
   auto f =
-      [=](const Key&, std::tuple<ttg::Out<Key, std::array<char, 20>>>& out) {
+      [=](const Key& key, std::tuple<ttg::Out<Key, std::array<char, 20>>>& out) {
         unsigned char my_state_char[20];
         std::array<char, 20> my_state_array;
 
@@ -142,24 +146,28 @@ auto root(ttg::Edge<Key, std::array<char, 20>>& out_edge) {
           ttg::send<0>(Key{1, i, i}, my_state_array, out);
       };
 
-  return ttg::wrap<Key>(f, ttg::edges(), ttg::edges(out_edge), "ROOT");
+  return ttg::wrap<Key>(f, ttg::edges(), ttg::edges(edge), "ROOT", {}, {"root_edge"});
 }
 
 int main(int argc, char** argv) {
   ttg::ttg_initialize(argc, argv, -1);
 
-  ttg::Edge<Key, std::array<char, 20>> in_edge("in_edge");    // input edge to a node
-  ttg::Edge<Key, std::array<char, 20>> out_edge("out_edge");  // output edge from a node
+  ttg::Edge<Key, std::array<char, 20>> edge("edge");   
+ 
+  auto op_root = root(edge);             
+  auto op_node = make_node(edge); 
 
-  auto op_init = root(out_edge);             
-  auto op_node = make_node(in_edge, out_edge); 
-
-  auto connected = make_graph_executable(op_init.get());
+  auto connected = make_graph_executable(op_root.get());
   assert(connected);
   TTGUNUSED(connected);
   std::cout << "Graph is connected: " << connected << std::endl;
 
   auto world = ttg::ttg_default_execution_context();
+
+  if (world.rank() == 0) 
+  {
+    op_root->invoke(Key{0, 0, 0});
+  }
 
   ttg::ttg_execute(world);
   ttg::ttg_fence(world);

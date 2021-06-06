@@ -52,7 +52,7 @@
 #include <parsec/mca/device/device.h>
 #include <parsec/parsec_internal.h>
 #include <parsec/scheduling.h>
-//#include <parsec/parsec_comm_engine.h>
+#include <parsec/parsec_comm_engine.h>
 #include <cstdlib>
 #include <cstring>
 
