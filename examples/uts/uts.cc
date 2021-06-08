@@ -28,6 +28,7 @@ double b_0 = 4.0;                  // default branching factor at the root
 int nonLeafBF = 4;                 // m
 double nonLeafProb = 15.0 / 64.0;  // q
 int rootId = 0;                    // default seed for RNG state at root
+int computeGranularity = 1;        //granularity of a task
 
 // Interpret 32 bit positive integer as value on [0,1)
 double rng_toProb(int n) {
@@ -101,12 +102,14 @@ auto make_node(ttg::Edge<Key, std::array<char, 20>>& edge) {
         auto [l, n, s, h] = key;
 
         //std::cout<<"node("<< l <<", "<< n << ")" << std::endl;
-        printf("node(%d, %d) \n", l, n);
+        auto world = ttg::ttg_default_execution_context();
+        printf("node(%d, %d) rank %d\n", l, n, world.rank());
 
         for (int j = 0; j < par_state_array.size(); j++)
           par_state_char[j] = par_state_array[j];  // task receives at std::array. convert it to char*
 
         rng_spawn(par_state_char, my_state_char, s);
+
 
         for (int j = 0; j < my_state_array.size(); j++)  // convert char* my_state_char to std::array
           my_state_array[j] = my_state_char[j];
@@ -149,7 +152,42 @@ auto root(ttg::Edge<Key, std::array<char, 20>>& edge) {
   return ttg::wrap<Key>(f, ttg::edges(), ttg::edges(edge), "ROOT", {}, {"root_edge"});
 }
 
+
+void uts_parseParams(int argc, char *argv[]){
+  int i = 1; 
+  int err = -1;
+  while (i < argc && err == -1) {
+    
+    switch (argv[i][1]) {
+      case 'q':
+        nonLeafProb = atof(argv[i+1]); break;
+      case 'm':
+        nonLeafBF = atoi(argv[i+1]); break;
+      case 'r':
+        rootId = atoi(argv[i+1]); break;
+      case 'b':
+        b_0 = atof(argv[i+1]); break;
+      case 'g':
+        computeGranularity = std::max(1,atoi(argv[i+1])); break;
+      default:
+        err = i;
+    }
+
+    if (err != -1) break;
+
+    i += 2;
+  }
+
+  if (err != -1) {
+    printf("Unrecognized parameter or incorrect/missing value: '%s %s'\n", argv[i], (i+1 < argc) ? argv[i+1] : "[none]");
+    exit(0);
+  }
+}
+
 int main(int argc, char** argv) {
+
+  uts_parseParams(argc, argv);
+
   ttg::ttg_initialize(argc, argv, -1);
 
   ttg::Edge<Key, std::array<char, 20>> edge("edge");   
