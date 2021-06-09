@@ -738,6 +738,9 @@ namespace ttg_parsec {
         parsec_execution_stream_t *es = world_impl.execution_stream();
         if (tracing()) ttg::print(world.rank(), ":", get_name(), " : ", key, ": submitting task for op ");
         parsec_hash_table_remove(&tasks_table, hk);
+
+        std::cout << "DEBUG: schedule 742" << std::endl;
+
         __parsec_schedule(es, &task->parsec_task, 0);
       }
     }
@@ -795,6 +798,8 @@ namespace ttg_parsec {
       static_assert(ttg::meta::is_empty_tuple_v<input_refs_tuple_type>,
                     "logic error: set_arg (case 3) called but input_refs_tuple_type is nonempty");
 
+      std::cout << "DEBUG: set_args 801" << std::endl;
+
       const auto owner = keymap(key);
       auto &world_impl = world.impl();
       if (owner == ttg_default_execution_context().rank()) {
@@ -826,7 +831,11 @@ namespace ttg_parsec {
         world_impl.increment_created();
         if (tracing()) ttg::print(world.rank(), ":", get_name(), " : ", key, ": submitting task for op ");
         world_impl.increment_sent_to_sched();
+
+        std::cout << "DEBUG: schedule 833" << std::endl; 
+
         __parsec_schedule(es, &task->parsec_task, 0);
+
       } else {
         using msg_t = detail::msg_t;
         // We pass -1 to signal that we just need to call set_arg(key) on the other end
@@ -879,7 +888,11 @@ namespace ttg_parsec {
         world_impl.increment_created();
         if (tracing()) ttg::print(world.rank(), ":", get_name(), " : submitting task for op ");
         world_impl.increment_sent_to_sched();
+
+        std::cout << "DEBUG: schedule 886" << std::endl;
+
         __parsec_schedule(es, &task->parsec_task, 0);
+
       }
     }
 
@@ -970,10 +983,22 @@ namespace ttg_parsec {
       // case 1
       if constexpr (!ttg::meta::is_void_v<keyT> && !ttg::meta::is_empty_tuple_v<input_refs_tuple_type> &&
                     !std::is_void_v<valueT>) {
+
+        std::cout << "DEBUG: constexpr 977" << std::endl;
+
         auto move_callback = [this](const keyT &key, valueT &&value) {
+
+          std::cout << "DEBUG: constexpr set_arg 991 " << std::endl;
+
           set_arg<i, keyT, valueT>(key, std::forward<valueT>(value));
         };
+
+        std::cout << "DEBUG: constexpr 983" << std::endl;
+
         auto send_callback = [this](const keyT &key, const valueT &value) {
+
+          std::cout << "DEBUG: constexpr set_arg 1000 " << std::endl;
+
           set_arg<i, keyT, const valueT &>(key, value);
         };
         input.set_callback(send_callback, move_callback);
@@ -981,18 +1006,27 @@ namespace ttg_parsec {
       // case 2
       else if constexpr (!ttg::meta::is_void_v<keyT> && !ttg::meta::is_empty_tuple_v<input_refs_tuple_type> &&
                          std::is_void_v<valueT>) {
+        
+        std::cout << "DEBUG: constexpr 992" << std::endl;
+
         auto send_callback = [this](const keyT &key) { set_arg<i, keyT, ttg::Void>(key, ttg::Void{}); };
         input.set_callback(send_callback, send_callback);
       }
       // case 3
       else if constexpr (!ttg::meta::is_void_v<keyT> && ttg::meta::is_empty_tuple_v<input_refs_tuple_type> &&
                          std::is_void_v<valueT>) {
+        
+        std::cout << "DEBUG: constexpr 1000" << std::endl;
+
         auto send_callback = [this](const keyT &key) { set_arg<keyT>(key); };
         input.set_callback(send_callback, send_callback);
       }
       // case 4
       else if constexpr (ttg::meta::is_void_v<keyT> && !ttg::meta::is_empty_tuple_v<input_refs_tuple_type> &&
                          !std::is_void_v<valueT>) {
+        
+        std::cout << "DEBUG: constexpr 1008" << std::endl;
+
         auto move_callback = [this](valueT &&value) { set_arg<i, keyT, valueT>(std::forward<valueT>(value)); };
         auto send_callback = [this](const valueT &value) { set_arg<i, keyT, const valueT &>(value); };
         input.set_callback(send_callback, move_callback);
@@ -1000,12 +1034,18 @@ namespace ttg_parsec {
       // case 5
       else if constexpr (ttg::meta::is_void_v<keyT> && !ttg::meta::is_empty_tuple_v<input_refs_tuple_type> &&
                          std::is_void_v<valueT>) {
+
+        std::cout << "DEBUG: constexpr 1018" << std::endl;
+
         auto send_callback = [this]() { set_arg<i, keyT, ttg::Void>(ttg::Void{}); };
         input.set_callback(send_callback, send_callback);
       }
       // case 6
       else if constexpr (ttg::meta::is_void_v<keyT> && ttg::meta::is_empty_tuple_v<input_refs_tuple_type> &&
                          std::is_void_v<valueT>) {
+        
+         std::cout << "DEBUG: constexpr 1025" << std::endl;
+
         auto send_callback = [this]() { set_arg<keyT>(); };
         input.set_callback(send_callback, send_callback);
       } else
@@ -1014,6 +1054,9 @@ namespace ttg_parsec {
 
     template <std::size_t... IS>
     void register_input_callbacks(std::index_sequence<IS...>) {
+
+      std::cout << "DEBUG: register_input_callback 1042" << std::endl;
+
       int junk[] = {0, (register_input_callback<typename std::tuple_element<IS, input_terminals_type>::type, IS>(
                             std::get<IS>(input_terminals)),
                         0)...};
@@ -1022,18 +1065,27 @@ namespace ttg_parsec {
 
     template <std::size_t... IS, typename inedgesT>
     void connect_my_inputs_to_incoming_edge_outputs(std::index_sequence<IS...>, inedgesT &inedges) {
+
+      std::cout << "DEBUG: connect_my_inputs_to_incoming_edge_outputs 1053" << std::endl;
+
       int junk[] = {0, (std::get<IS>(inedges).set_out(&std::get<IS>(input_terminals)), 0)...};
       junk[0]++;
     }
 
     template <std::size_t... IS, typename outedgesT>
     void connect_my_outputs_to_outgoing_edge_inputs(std::index_sequence<IS...>, outedgesT &outedges) {
+
+      std::cout << "DEBUG: connect_my_outputs_to_outgoing_edge_inputs 1062" << std::endl;
+
       int junk[] = {0, (std::get<IS>(outedges).set_in(&std::get<IS>(output_terminals)), 0)...};
       junk[0]++;
     }
 
     template <typename input_terminals_tupleT, std::size_t... IS, typename flowsT>
     void _initialize_flows(std::index_sequence<IS...>, flowsT &&flows) {
+
+      std::cout << "DEBUG: _initialize_flows 1071" << std::endl;
+
       int junk[] = {0,
                     (*(const_cast<std::remove_const_t<decltype(flows[IS]->flow_flags)> *>(&(flows[IS]->flow_flags))) =
                          (std::is_const<typename std::tuple_element<IS, input_terminals_tupleT>::type>::value
@@ -1045,6 +1097,9 @@ namespace ttg_parsec {
 
     template <typename input_terminals_tupleT, typename flowsT>
     void initialize_flows(flowsT &&flows) {
+
+      std::cout << "DEBUG: _initialize_flows 1085" << std::endl;
+
       _initialize_flows<input_terminals_tupleT>(
           std::make_index_sequence<std::tuple_size<input_terminals_tupleT>::value>{}, flows);
     }
@@ -1289,8 +1344,13 @@ namespace ttg_parsec {
     // Manual injection of a task that has no arguments
     template <typename Key = keyT>
     std::enable_if_t<!ttg::meta::is_void_v<Key>, void> invoke(const Key &key) {
+
+      std::cout << "DEBUG: invoke 1332" << std::endl;
+
       TTG_OP_ASSERT_EXECUTABLE();
+
       set_arg<keyT>(key);
+
     }
 
     // Manual injection of a task that has no key or arguments

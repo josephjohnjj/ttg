@@ -63,28 +63,43 @@ namespace ttg {
 
   template <typename keyT, typename valueT, typename output_terminalT>
   void send(const keyT &key, valueT &&value, output_terminalT &t) {
+
+    std::cout << "DEBUG: send 67" << std::endl;
+
     t.send(key, std::forward<valueT>(value));
   }
 
   template <typename keyT, typename output_terminalT>
   void sendk(const keyT &key, output_terminalT &t) {
+
+    std::cout << "DEBUG: send 75" << std::endl;
+
     t.sendk(key);
   }
 
   // TODO if sendk is removed, rename to send
   template <typename valueT, typename output_terminalT>
   void sendv(valueT &&value, output_terminalT &t) {
+
+    std::cout << "DEBUG: send 84" << std::endl;
+
     t.sendv(std::forward<valueT>(value));
   }
 
   template <typename keyT, typename valueT, typename output_terminalT>
   void send(output_terminalT &t) {
+
+    std::cout << "DEBUG: send 92" << std::endl;
+
     t.send();
   }
 
   template <size_t i, typename keyT, typename valueT, typename... output_terminalsT>
   std::enable_if_t<meta::is_none_void_v<keyT,std::decay_t<valueT>>,void>
       send(const keyT &key, valueT &&value, std::tuple<output_terminalsT...> &t) {
+
+        std::cout << "DEBUG: send 102" << std::endl;
+
     std::get<i>(t).send(key, std::forward<valueT>(value));
   }
 
@@ -92,6 +107,9 @@ namespace ttg {
   template <size_t i, typename keyT, typename... output_terminalsT>
   std::enable_if_t<!meta::is_void_v<keyT>,void>
   sendk(const keyT &key, std::tuple<output_terminalsT...> &t) {
+
+    std::cout << "DEBUG: send 111" << std::endl;
+
     std::get<i>(t).sendk(key);
   }
 
@@ -99,11 +117,17 @@ namespace ttg {
   template <size_t i, typename valueT, typename... output_terminalsT>
   std::enable_if_t<!meta::is_void_v<valueT>,void>
   sendv(valueT &&value, std::tuple<output_terminalsT...> &t) {
+
+    std::cout << "DEBUG: send 121" << std::endl;
+
     std::get<i>(t).sendv(std::forward<valueT>(value));
   }
 
   template <size_t i, typename... output_terminalsT>
   void send(std::tuple<output_terminalsT...> &t) {
+
+    std::cout << "DEBUG: send 129" << std::endl;
+
     std::get<i>(t).send();
   }
 

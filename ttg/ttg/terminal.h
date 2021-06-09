@@ -53,6 +53,9 @@ namespace ttg {
     void set_callback(const send_callback_type &send_callback, const move_callback_type &move_callback,
                       const setsize_callback_type &setsize_callback = setsize_callback_type{},
                       const finalize_callback_type &finalize_callback = finalize_callback_type{}) {
+      
+      std::cout << "DEBUG: set_callback 57" << std::endl;
+      
       this->send_callback = send_callback;
       this->move_callback = move_callback;
       this->setsize_callback = setsize_callback;
@@ -62,6 +65,9 @@ namespace ttg {
     template <typename Key = keyT, typename Value = valueT>
     std::enable_if_t<meta::is_none_void_v<Key,Value>,void>
     send(const Key &key, const Value &value) {
+
+      std::cout << "DEBUG: send b4 send_callback 66" << std::endl;
+
       if (!send_callback) throw std::runtime_error("send callback not initialized");
       send_callback(key, value);
     }
@@ -69,6 +75,9 @@ namespace ttg {
     template <typename Key = keyT, typename Value = valueT>
     std::enable_if_t<meta::is_none_void_v<Key,Value> && std::is_same_v<Value,std::remove_reference_t<Value>>,void>
     send(const Key &key, Value &&value) {
+
+      std::cout << "DEBUG: send b4 move_callback 76" << std::endl;
+
       if (!move_callback) throw std::runtime_error("move callback not initialized");
       move_callback(key, std::forward<valueT>(value));
     }
@@ -76,6 +85,9 @@ namespace ttg {
     template <typename Key = keyT>
     std::enable_if_t<!meta::is_void_v<Key>,void>
     sendk(const Key &key) {
+
+      std::cout << "DEBUG: send b4 send_callback 86" << std::endl;
+
       if (!send_callback) throw std::runtime_error("send callback not initialized");
       send_callback(key);
     }
@@ -83,6 +95,9 @@ namespace ttg {
     template <typename Value = valueT>
     std::enable_if_t<!meta::is_void_v<Value>,void>
     sendv(const Value &value) {
+
+      std::cout << "DEBUG: send b4 send_callback 96" << std::endl;
+
       if (!send_callback) throw std::runtime_error("send callback not initialized");
       send_callback(value);
     }
@@ -90,11 +105,17 @@ namespace ttg {
     template <typename Value = valueT>
     std::enable_if_t<!meta::is_void_v<Value> && std::is_same_v<Value,std::remove_reference_t<Value>>,void>
     sendv(Value &&value) {
+
+      std::cout << "DEBUG: send b4 move_callback 106" << std::endl;
+
       if (!move_callback) throw std::runtime_error("move callback not initialized");
       move_callback(std::forward<valueT>(value));
     }
 
     void send() {
+
+      std::cout << "DEBUG: send b4 move_callback 114" << std::endl;
+
       if (!send_callback) throw std::runtime_error("send callback not initialized");
       send_callback();
     }
@@ -197,6 +218,9 @@ namespace ttg {
 
     template<typename Key = keyT, typename Value = valueT>
     std::enable_if_t<meta::is_none_void_v<Key,Value>,void> send(const Key &key, const Value &value) {
+
+      std::cout << "DEBUG: terminal send 201" << std::endl; 
+
       for (auto && successor : successors()) {
         assert(successor->get_type() != TerminalBase::Type::Write);
         if (successor->get_type() == TerminalBase::Type::Read) {
@@ -209,6 +233,9 @@ namespace ttg {
 
     template<typename Key = keyT, typename Value = valueT>
     std::enable_if_t<!meta::is_void_v<Key> && meta::is_void_v<Value>,void> sendk(const Key &key) {
+
+      std::cout << "DEBUG: terminal send 216" << std::endl; 
+
       for (auto && successor : successors()) {
         assert(successor->get_type() != TerminalBase::Type::Write);
         if (successor->get_type() == TerminalBase::Type::Read) {
@@ -221,6 +248,9 @@ namespace ttg {
 
     template<typename Key = keyT, typename Value = valueT>
     std::enable_if_t<meta::is_void_v<Key> && !meta::is_void_v<Value>,void> sendv(const Value &value) {
+
+      std::cout << "DEBUG: terminal send 231" << std::endl; 
+
       for (auto && successor : successors()) {
         assert(successor->get_type() != TerminalBase::Type::Write);
         if (successor->get_type() == TerminalBase::Type::Read) {
@@ -233,6 +263,9 @@ namespace ttg {
 
     template<typename Key = keyT, typename Value = valueT>
     std::enable_if_t<meta::is_all_void_v<Key,Value>,void> send() {
+
+      std::cout << "DEBUG: terminal send 246" << std::endl; 
+
       if (tracing()) {
         print(rank(), ": in ", get_name(), "(ptr=", this, ") Out<>::send: #successors=", successors().size());
       }
@@ -255,6 +288,9 @@ namespace ttg {
     template <typename Key = keyT, typename Value = valueT>
     std::enable_if_t<meta::is_none_void_v<Key,Value> && std::is_same_v<Value,std::remove_reference_t<Value>>,void>
     send(const Key &key, Value &&value) {
+
+      std::cout << "DEBUG: terminal send 271" << std::endl; 
+
       std::size_t N = successors().size();
       // find the first terminal that can consume the value
       std::size_t move_terminal = N - 1;
