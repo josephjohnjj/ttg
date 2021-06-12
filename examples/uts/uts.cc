@@ -145,6 +145,9 @@ auto root(ttg::Edge<Key, std::array<char, 20>>& edge) {
 
         int numChildren = (int)floor(b_0);
 
+        auto world = ttg::ttg_default_execution_context();
+        printf("root on rank %d\n", world.rank());
+
         for (int i = 0; i < numChildren; i++) 
           ttg::send<0>(Key{1, i, i}, my_state_array, out);
       };
@@ -190,17 +193,22 @@ int main(int argc, char** argv) {
 
   ttg::ttg_initialize(argc, argv, -1);
 
+  auto world = ttg::ttg_default_execution_context();
+
   ttg::Edge<Key, std::array<char, 20>> edge("edge");   
  
   auto op_root = root(edge);             
   auto op_node = make_node(edge); 
+
+  auto keymap = [=](const Key& key) { return key.l %  world.size(); }; 
+  op_node->set_keymap(keymap);
 
   auto connected = make_graph_executable(op_root.get());
   assert(connected);
   TTGUNUSED(connected);
   std::cout << "Graph is connected: " << connected << std::endl;
 
-  auto world = ttg::ttg_default_execution_context();
+  
 
   if (world.rank() == 0) 
   {

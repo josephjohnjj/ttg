@@ -1,6 +1,4 @@
-This document describes how a TTG program works. This may be helpful for someone
-who has predominantly worked with PTG and C. Experienced C++ programmers may find 
-most explanations rudimentary. 
+This document describes how a TTG program works. This may be helpful for someone who has predominantly worked with PTG and C. Experienced C++ programmers may find most explanations rudimentary. 
 
 (---> denote functiona call chains)
 
@@ -394,11 +392,11 @@ int main(int argc, char **argv)
 
 
 ### DAG Definition
-The DAG consists of a set of nodes and the edges between them. In TTG we define, the types edges and the types of tasks (task class) used. 
+The DAG consists of a set of nodes and the edges between them. In TTG we define, the types of edges and the types of tasks (task class) used. 
 
 #### Edge definition
 
-Edge in TTG an edge carries both key of the task it is intended for and the input data for. So when defining an edge we pass the type of the key and the type of data as template argments [1] and the name of the edge as the constructor argument [2]. 
+Edge in TTG an edge carries both key of the task it is intended for and the input data for the same task. So when defining an edge we pass the type of the key and the type of data as template arguments [1] and the name of the edge as the constructor argument [2]. 
 
 ```
 ttg::Edge<Key, BlockMatrix<double>> potrf_trsm("potrf_trsm")
@@ -406,14 +404,14 @@ ttg::Edge<Key, BlockMatrix<double>> potrf_trsm("potrf_trsm")
 
 #### Task definition
 
-To define a task we create a function (eg: make_gemm()) that takes all the type of edge this task type will use, in addition to all the elements we need to define a task body (eg: data it operates on). The function returns an object of class Op (ttg/ttg/ttg/parsec/ttg.h). The class Op instantiates a task class in TTG.
+To define a task we create a function (eg: make_gemm()) that takes all the types of edges this task type will use, in addition to all the elements we need to define a task body (eg: data it operates on). The function returns an object of class Op (ttg/ttg/ttg/parsec/ttg.h). The instance of s class Op represents a task class in TTG.
 
 The function mainly does 3 things
-    1. it wraps ( wrap() ttg/ttg/ttg/wrap.h) everything together to return the class Op instance 
-    2. it defines the computation inside a task body (hook) as a lambda function 
-    3. inside the lambda function it deines the out edge from a task to its successor task 
+ 1. it wraps ( wrap() ttg/ttg/ttg/wrap.h) everything together to return the class Op instance 
+ 2. it defines the computation inside a task body (hook) as a lambda function 
+ 3. inside the lambda function it defines the out edge from a task to its successor task 
 
-For example take the the function make_gemm() in uts.cc. 
+For example take the the function make_gemm(). 
 
 ```
 return ttg::wrap(f,
@@ -423,9 +421,9 @@ return ttg::wrap(f,
                    {"output_trsm", "outout_gemm"});
 ```
 
-This creates a task class that executes function lamda fucntion 'f, and takes an input edge of type input_nk (trsm_gemm_row),input_mk (trsm_gemm_col) and input_nm (gemm_gemm). It has an output edge of type output_trsm (gemm_trsm) and output_gemm (gemm_gemm). "GEMM" is the name of the task class. {"input_nk", "input_mk", "input_nm"} are the name given to the input edges and  {"output_trsm", "outout_gemm"} are the names given to the output edges. 
+This creates a task class that executes function lamda fucntion 'f, and takes an input edge of type input_nk (trsm_gemm_row),input_mk (trsm_gemm_col) and input_nm (gemm_gemm). It has an output edge of type output_trsm (gemm_trsm) and output_gemm (gemm_gemm). "GEMM" is the name of the task class. {"input_nk", "input_mk", "input_nm"} are the name given to the input edges and {"output_trsm", "outout_gemm"} are the names given to the output edges. 
 
-The labda function 'f' carries out some computation (in the case of "GEMM" a blas::gemm() operation) and the send the output to its successors. The order of declaring the edges in ttg::wrap() is very important as it plays an important role in sending the data to the succesors. For instance in the function f in make_gemm(), we have
+The lambda function 'f' carries out the required computation (in the case of "GEMM" a blas::gemm() operation) and sends the output to its successors. The order of declaring the edges in ttg::wrap() is very important as it plays an important role in sending the data to the successors. For instance in the function f in make_gemm(), we have
 
 ```
 ttg::send<0>(Key{0, 0, 0}, (*A)(0, 0), out);
@@ -433,7 +431,7 @@ ttg::send<0>(Key{0, 0, 0}, (*A)(0, 0), out);
 
 This means that the task will send the key Key{0, 0, 0} and data (*A)(0, 0) through the 0th output edge output_trsm (gemm_trsm). If you check the function make_trsm() you can see that gemm_trsm is an input edge to the task "TRSM". 
 
-Similarly the same order should be mainiained when declaring the input to the lamda function. 
+Similarly, the same order should be maintained when declaring the input to the lambda function. 
 ```
 auto f = [](const Key& key,
               const BlockMatrix<T>& tile_nk,
@@ -443,7 +441,10 @@ auto f = [](const Key& key,
                                ttg::Out<Key, BlockMatrix<T>>>& out){.... }
 ```
 
-The order is - key followed by the input data types (same order as the input edges), followed by tuple of output data types (same order as the output edges).  
+The order is 
+1. key
+2. followed by the input data types (same order as the input edges)
+3. followed by the tuple of output data types (same order as the output edges).  
 
 ### What happens when a task sends key + data
 
@@ -466,6 +467,7 @@ template <size_t i, typename keyT, typename valueT, typename... output_terminals
 ```
 
 The above function gets the ith terminal from the tuple of output terminals. It then invokes the member function
+
 ```
 template<typename Key = keyT, typename Value = valueT>
 std::enable_if_t<meta::is_none_void_v<Key,Value>,void> send(const Key &key, const Value &value) {
@@ -481,6 +483,7 @@ std::enable_if_t<meta::is_none_void_v<Key,Value>,void> send(const Key &key, cons
 ```
 
 of the class Out (ttg/ttg/ttg/terminal.h). This in turn calls the member function 
+
 ```
 template <typename Key = keyT, typename Value = valueT>
 std::enable_if_t<meta::is_none_void_v<Key,Value>,void>
@@ -507,7 +510,7 @@ template <std::size_t i, typename Key, typename Value>
    set_arg_impl<i>(key, std::forward<Value>(value));
  }
 ```
-set_arg_impl() packs both the key and the data  using pack() (ttg/ttg/ttg/parsec/ttg.h) ---> pack_payload() (ttg/ttg/ttg/serialization/data_descriptor.h).
+set_arg_impl() packs both the key and the data  using pack() (ttg/ttg/ttg/parsec/ttg.h) ---> pack_payload() (ttg/ttg/ttg/serialization/data_descriptor.h) 
 
 ```
 static uint64_t pack_payload(const void *object, uint64_t size, uint64_t begin, void *buf) {
@@ -518,18 +521,35 @@ static uint64_t pack_payload(const void *object, uint64_t size, uint64_t begin, 
 }
 ```
 
-The packed data and key is then send across network using the parsec sending function send_am(). 
+into an object of type msg_t (ttg/ttg/ttg/parsec/ttg.h). The unique instance id for the task class (explained in the receiver part), taskpool id and the position of the output terminal is also packed into this. 
+
+```
+struct msg_header_t {
+  uint32_t taskpool_id;
+  uint64_t op_id;
+  std::size_t param_id;
+};
+
+struct msg_t {
+  msg_header_t op_id;
+  unsigned char bytes[WorldImpl::PARSEC_TTG_MAX_AM_SIZE - sizeof(msg_header_t)];
+  msg_t() = default;
+  msg_t(uint64_t op_id, uint32_t taskpool_id, std::size_t param_id) : op_id{taskpool_id, op_id,param_id} {}
+};
+```
+
+The packed message is then send across network using the parsec sending function send_am(). 
 
 ```
 parsec_ce.send_am(&parsec_ce, world_impl.parsec_ttg_tag(), owner, static_cast<void *>(msg),
                         sizeof(msg_header_t) + pos);
 ```
 
-world_impl.parsec_ttg_tag() returns tge tag _PARSEC_TTG_TAG.
+world_impl.parsec_ttg_tag() returns the tag _PARSEC_TTG_TAG.
 
 #### Receiver Side
 
-When a task class is created using ttg:wrap() it creates a unique instance id for the task class. This unique instance id is used as key to create an entry in the std::map [4] object static_id_to_op_map, data corresponding to the key is an object of std::pair. The first element in the pair is a function static_set_arg() (ttg/ttg/ttg/parsec/ttg.h) and the second element is the instance returned by ttg:wrap() (The unique instance id belongs to class OpBase. static_set_arg() also oprates on object of type class OpBase. But as class Op returnded by ttg:wrap() inherits from OpBase, this is not a problem).
+When a task class is created using ttg:wrap() it creates a unique instance id for the task class. This unique instance id is used as a key to create an entry in the std::map [4] object static_id_to_op_map, data corresponding to the key is an object of std::pair. The first element in the pair is a function static_set_arg() (ttg/ttg/ttg/parsec/ttg.h) and the second element is the instance returned by ttg:wrap() (The unique instance id belongs to class OpBase. static_set_arg() also operates on object of type class OpBase. But as class Op returned by ttg:wrap() inherits from OpBase, this is not a problem).
 
 
 The _PARSEC_TTG_TAG is matched by a receiver function that invokes the function (static_unpack_msg)
@@ -539,7 +559,8 @@ parsec_ce.tag_register(_PARSEC_TTG_TAG, static_unpack_msg, this, PARSEC_TTG_MAX_
 
 ```
 
-The static_unpack_msg() uses the unique instance id (op_id) of the task class to find the pair the correct pair in the static_id_to_op_map object. 
+The static_unpack_msg() extracts the unique instance id (op_id) from the message (of type msg_t).
+The op_id of the task class is then used to find the correct pair in the static_id_to_op_map object. 
 
 ```
 auto op_pair = static_id_to_op_map.at(op_id);
@@ -550,32 +571,22 @@ static_set_arg_fct(data, size, op_pair.second);
 tp->tdm.module->incoming_message_end(tp, NULL);
 ```
 
-static_set_arg_fct in the above code refers to the function static_set_arg(). The function is called with arguments message - which is message  received over the network, size - which is the size of the message and op_pair.second is the task class itself. 
+static_set_arg_fct in the above code refers to the function static_set_arg(). The function is called with arguments 
+1. message - which is message received over the network, 
+2. size - which is the size of the message and 
+3. op_pair.second is the task class itself. 
 
 static_set_arg() ---> set_arg_from_msg() (ttg/ttg/parsec/ttg.h). set_arg_from_msg() unpacks both key and the data from the message. set_arg_from_msg() ---> set_args() ---> set_arg_impl() ---> set_arg_local() ---> set_arg_local_impl().
 
-set_arg_local_impl() checks if the task has already been created by checking the hasj table. If the tasks is not available in the hash table
+set_arg_local_impl() checks if the task has already been created by checking the hash table. If the task is not available in the hash table
 1. task is created
 2. the data is associated with the task
 3. the task is pushed to the hash table
 
-if the tasks is already available hash tables
+if the task is already available hash tables
 1. the data is associated with the task
-2. if all its data depdendecy is met, remove from hash table
+2. if all its data dependency is met, remove it from hash table
 3. schedule the task
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -586,4 +597,5 @@ if the tasks is already available hash tables
 [3]: Reference https://isocpp.org/wiki/faq/references
 [4]: std::map https://en.cppreference.com/w/cpp/container/map
 [5]: std::pair https://en.cppreference.com/w/cpp/utility/pair
+
 
