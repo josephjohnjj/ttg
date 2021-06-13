@@ -446,7 +446,19 @@ The order is
 2. followed by the input data types (same order as the input edges)
 3. followed by the tuple of output data types (same order as the output edges).  
 
-### What happens when a task sends key + data
+### Statrting the computation
+
+The computation is started when one of the Op class object calls the invoke function. 
+
+```
+op_init->invoke(Key{0, 0, 0});
+```
+
+This will insert a function that acts as the starting point of computation.
+
+### Depdendency Propogation
+
+The successor tasks are activated when a task completes is computation and propogates/sends its data to its successors. 
 
 #### Sender Side
 
