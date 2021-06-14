@@ -77,7 +77,6 @@ namespace ttg_parsec {
     uint32_t taskpool_id;
     uint64_t op_id;
     std::size_t param_id;
-    std::size_t mig_status;
   };
 
   static int static_unpack_msg(parsec_comm_engine_t *ce, uint64_t tag, void *data, long unsigned int size, int src_rank,
@@ -388,7 +387,6 @@ namespace ttg_parsec {
 
       msg_t() = default;
       msg_t(uint64_t op_id, uint32_t taskpool_id, std::size_t param_id) : op_id{taskpool_id, op_id, param_id} {}
-      msg_t(uint64_t op_id, uint32_t taskpool_id, std::size_t param_id, std::size_t mig_status) : op_id{taskpool_id, op_id, param_id, mig_status} {}
     };
   }  // namespace detail
 
@@ -673,12 +671,21 @@ namespace ttg_parsec {
 
         std::cout << "DEBUG: set_arg_from_msg case 1" << std::endl; 
 
+        std::size_t mig_status;
         keyT key;
         using decvalueT = std::decay_t<valueT>;
         decvalueT val;
         uint64_t pos = unpack(key, msg->bytes, 0);
         pos = unpack(val, msg->bytes, pos);
-        set_arg<i, keyT, valueT>(key, std::move(val));
+        pos = unpack(mig_status, msg->bytes, pos);
+
+        std::cout<<"MIG: migrated task status " << mig_status << std::endl;
+
+        if(mig_status == 0)  
+          set_arg<i, keyT, valueT>(key, std::move(val));
+        else
+          set_arg<i, 1, keyT, valueT>(key, std::move(val));
+
         // case 2
       } else if constexpr (!ttg::meta::is_void_v<keyT> && !ttg::meta::is_empty_tuple_v<input_refs_tuple_type> &&
                            std::is_void_v<valueT>) {
@@ -839,18 +846,18 @@ namespace ttg_parsec {
         if (tracing()) ttg::print(world.rank(), ":", get_name(), " : ", key, ": submitting task for op ");
         parsec_hash_table_remove(&tasks_table, hk);
 
-        //if(world.rank() == 0)
-        //{
-        //  int dst_rank = (world.rank() + 1) % world.size();
-        //  std::cout << "MIG: migrate " << world.rank() << "---->"<< dst_rank <<std::endl;
-        //  migrate(key, &task->parsec_task, dst_rank );
-        //}
-        //else
-        //{
-        //  std::cout << "DEBUG: schedule 742" << std::endl;
+        if(world.rank() == 1)
+        {
+          int dst_rank = (world.rank() + 1) % world.size();
+          std::cout << "MIG: Start migrate " << world.rank() << "---->"<< dst_rank <<std::endl;
+          migrate(key, &task->parsec_task, dst_rank );
+        }
+        else
+        {
+          std::cout << "DEBUG: schedule 742" << std::endl;
           __parsec_schedule(es, &task->parsec_task, 0);
-//
-        //}
+
+        }
 
         
       }
@@ -872,6 +879,16 @@ namespace ttg_parsec {
       std::cout << "DEBUG: set_arg 788" << std::endl;
 
       set_arg_impl<i>(ttg::Void{}, std::forward<Value>(value));
+    }
+
+
+    // MIG CODE
+    template <std::size_t i, std::size_t mig_status, typename Key, typename Value>
+    std::enable_if_t<!ttg::meta::is_void_v<Key> && !std::is_void_v<std::decay_t<Value>>, void> set_arg(const Key &key,
+                                                                                                       Value &&value) {
+      std::cout << "MIG: set_arg 885" << std::endl;
+
+      set_arg_impl<i, mig_status>(key, std::forward<Value>(value));
     }
 
     // Used to set the i'th argument
@@ -902,12 +919,14 @@ namespace ttg_parsec {
       using msg_t = detail::msg_t;
       auto &world_impl = world.impl();
       msg_t *msg = new msg_t(get_instance_id(), world_impl.taskpool()->taskpool_id, i);
-
+      
       std::cout << "DEBUG: set_arg_impl - key+value 850" << std::endl;
-
+    
+      std::size_t mig_status = 0;
       uint64_t pos = 0;
       pos = pack(key, msg->bytes, pos);
       pos = pack(value, msg->bytes, pos);
+      pos = pack(mig_status, msg->bytes, pos);
       parsec_taskpool_t *tp = world_impl.taskpool();
       tp->tdm.module->outgoing_message_start(tp, owner, NULL);
       tp->tdm.module->outgoing_message_pack(tp, owner, NULL, NULL, 0);
@@ -915,6 +934,26 @@ namespace ttg_parsec {
       parsec_ce.send_am(&parsec_ce, world_impl.parsec_ttg_tag(), owner, static_cast<void *>(msg),
                         sizeof(msg_header_t) + pos);
       delete msg;
+    }
+
+
+    // Used to set the i'th argument
+    template <std::size_t i, std::size_t mig_status, typename Key, typename Value>
+    void set_arg_impl(const Key &key, Value &&value) {
+      using valueT = typename std::tuple_element<i, input_values_full_tuple_type>::type;
+      
+      if constexpr (!ttg::meta::is_void_v<keyT>)
+      {
+        std::cout << "MIG: set_arg_impl 947" << std::endl;
+        set_arg_local<i, keyT, Value>(key, std::forward<Value>(value));
+      }
+      else
+      {
+        std::cout << "MIG: set_arg_impl 952" << std::endl;
+        set_arg_local<i, keyT, Value>(std::forward<Value>(value));
+      }
+      return;
+      
     }
 
     // Used to set the i'th argument
@@ -931,11 +970,13 @@ namespace ttg_parsec {
       auto &world_impl = world.impl();
       msg_t *msg = new msg_t(get_instance_id(), world_impl.taskpool()->taskpool_id, i);
 
-      std::cout << "MIG: migrate data to " << dst <<std::endl;
+      std::cout << "MIG: set_arg_impl : migrate data to " << dst <<std::endl;
 
+      std::size_t mig_status = 1;
       uint64_t pos = 0;
       pos = pack(key, msg->bytes, pos);
       pos = pack(value, msg->bytes, pos);
+      pos = pack(mig_status, msg->bytes, pos);
       parsec_taskpool_t *tp = world_impl.taskpool();
       tp->tdm.module->outgoing_message_start(tp, owner, NULL);
       tp->tdm.module->outgoing_message_pack(tp, owner, NULL, NULL, 0);
