@@ -77,6 +77,7 @@ namespace ttg_parsec {
     uint32_t taskpool_id;
     uint64_t op_id;
     std::size_t param_id;
+    std::size_t mig_status;
   };
 
   static int static_unpack_msg(parsec_comm_engine_t *ce, uint64_t tag, void *data, long unsigned int size, int src_rank,
@@ -387,6 +388,7 @@ namespace ttg_parsec {
 
       msg_t() = default;
       msg_t(uint64_t op_id, uint32_t taskpool_id, std::size_t param_id) : op_id{taskpool_id, op_id, param_id} {}
+      msg_t(uint64_t op_id, uint32_t taskpool_id, std::size_t param_id, std::size_t mig_status) : op_id{taskpool_id, op_id, param_id, mig_status} {}
     };
   }  // namespace detail
 
@@ -542,8 +544,14 @@ namespace ttg_parsec {
     void migrate(const Key &key, parsec_task_t* parsec_task, int dst )
     {
       int nb_input = parsec_task->task_class->dependencies_goal;
+
+      std::cout << "MIG: NB_OUTPUT " << nb_input << std::endl;
+
       for(int i = 0; i < nb_input; i++)
-        migrate_data<i>(key, parsec_task, dst);  
+      {
+        //migrate_data<i>(key, parsec_task, dst);
+        migrate_data<0>(key, parsec_task, dst); 
+      } 
 
       auto &world_impl = world.impl();
       world_impl.taskpool()->tdm.module->taskpool_addto_nb_tasks(world_impl.taskpool(), -1);;
@@ -558,9 +566,13 @@ namespace ttg_parsec {
 
         parsec_data_copy_t *copy;
         copy = parsec_task->data[i].data_in;
-        auto data = reinterpret_cast<valueT>(copy->device_private);
+        auto data = copy->device_private;
 
-        set_arg_impl<i>(key, std::forward<valueT>(data), dst);
+        using decvalueT = std::decay_t<valueT>;
+        decvalueT val;
+        unpack(val, data, 0);
+
+        set_arg_impl<i>(key, std::move(val), dst);
     }
 
     //MIG_CODE
@@ -827,9 +839,20 @@ namespace ttg_parsec {
         if (tracing()) ttg::print(world.rank(), ":", get_name(), " : ", key, ": submitting task for op ");
         parsec_hash_table_remove(&tasks_table, hk);
 
-        std::cout << "DEBUG: schedule 742" << std::endl;
+        //if(world.rank() == 0)
+        //{
+        //  int dst_rank = (world.rank() + 1) % world.size();
+        //  std::cout << "MIG: migrate " << world.rank() << "---->"<< dst_rank <<std::endl;
+        //  migrate(key, &task->parsec_task, dst_rank );
+        //}
+        //else
+        //{
+        //  std::cout << "DEBUG: schedule 742" << std::endl;
+          __parsec_schedule(es, &task->parsec_task, 0);
+//
+        //}
 
-        __parsec_schedule(es, &task->parsec_task, 0);
+        
       }
     }
 
@@ -908,7 +931,7 @@ namespace ttg_parsec {
       auto &world_impl = world.impl();
       msg_t *msg = new msg_t(get_instance_id(), world_impl.taskpool()->taskpool_id, i);
 
-      std::cout << "DEBUG: set_arg_impl - key+value 850" << std::endl;
+      std::cout << "MIG: migrate data to " << dst <<std::endl;
 
       uint64_t pos = 0;
       pos = pack(key, msg->bytes, pos);
