@@ -538,21 +538,26 @@ namespace ttg_parsec {
     //MIG_CODE
 
 
-    template <typename Key>
-    void migrate(const Key &key, parsec_task_t* parsec_task, int dst )
+    void migrate(parsec_task_t* parsec_task, int dst )
     {
       int nb_input = parsec_task->task_class->dependencies_goal;
 
-      std::cout << "MIG: NB_OUTPUT " << nb_input << std::endl;
-
-      for(int i = 0; i < nb_input; i++)
+      if constexpr (!ttg::meta::is_void_v<keyT> )
       {
-        //migrate_data<i>(key, parsec_task, dst);
-        migrate_data<0>(key, parsec_task, dst); 
-      } 
+        keyT key;
+        unpack(key, parsec_task->ttg_key, 0);
+        
+        std::cout << "MIG: NB_OUTPUT " << nb_input << std::endl;
 
-      auto &world_impl = world.impl();
-      world_impl.taskpool()->tdm.module->taskpool_addto_nb_tasks(world_impl.taskpool(), -1);;
+        for(int i = 0; i < nb_input; i++)
+        {
+          //migrate_data<i>(key, parsec_task, dst);
+          migrate_data<0>(key, parsec_task, dst); 
+        } 
+
+        auto &world_impl = world.impl();
+        world_impl.taskpool()->tdm.module->taskpool_addto_nb_tasks(world_impl.taskpool(), -1);
+      }
       
     }
 
@@ -806,6 +811,8 @@ namespace ttg_parsec {
           newtask->key = reinterpret_cast<parsec_key_t>(new_key);
         }
 
+        pack(key, &newtask->parsec_task.ttg_key, 0);
+
         parsec_mfence();
         parsec_hash_table_lock_bucket(&tasks_table, hk);
         if (NULL != (task = (detail::my_op_t *)parsec_hash_table_nolock_find(&tasks_table, hk))) {
@@ -850,7 +857,11 @@ namespace ttg_parsec {
         {
           int dst_rank = (world.rank() + 1) % world.size();
           std::cout << "MIG: Start migrate " << world.rank() << "---->"<< dst_rank <<std::endl;
-          migrate(key, &task->parsec_task, dst_rank );
+
+          auto op_id = task->parsec_task.task_class->task_class_id;
+          auto op_pair = static_id_to_op_map.at(op_id);
+          auto *op_ptr = reinterpret_cast<class Op*>(op_pair.second);
+          op_ptr->migrate(&task->parsec_task, dst_rank );
         }
         else
         {
