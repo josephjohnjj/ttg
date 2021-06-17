@@ -853,22 +853,22 @@ namespace ttg_parsec {
         if (tracing()) ttg::print(world.rank(), ":", get_name(), " : ", key, ": submitting task for op ");
         parsec_hash_table_remove(&tasks_table, hk);
 
-        if(world.rank() == 1)
-        {
-          int dst_rank = (world.rank() + 1) % world.size();
-          std::cout << "MIG: Start migrate " << world.rank() << "---->"<< dst_rank <<std::endl;
-
-          auto op_id = task->parsec_task.task_class->task_class_id;
-          auto op_pair = static_id_to_op_map.at(op_id);
-          auto *op_ptr = reinterpret_cast<class Op*>(op_pair.second);
-          op_ptr->migrate(&task->parsec_task, dst_rank );
-        }
-        else
-        {
-          std::cout << "DEBUG: schedule 742" << std::endl;
+        //if(world.rank() == 1)
+        //{
+        //  int dst_rank = (world.rank() + 1) % world.size();
+        //  std::cout << "MIG: Start migrate " << world.rank() << "---->"<< dst_rank <<std::endl;
+//
+        //  auto op_id = task->parsec_task.task_class->task_class_id;
+        //  auto op_pair = static_id_to_op_map.at(op_id);
+        //  auto *op_ptr = reinterpret_cast<class Op*>(op_pair.second);
+        //  op_ptr->migrate(&task->parsec_task, dst_rank );
+        //}
+        //else
+        //{
+        //  std::cout << "DEBUG: schedule 742" << std::endl;
           __parsec_schedule(es, &task->parsec_task, 0);
-
-        }
+//
+        //}
 
         
       }
@@ -1367,6 +1367,26 @@ namespace ttg_parsec {
       return PARSEC_HOOK_RETURN_DONE;
     }
 
+    static int migrate_task_to_dst(parsec_task_t* task, int dst)
+    {
+    
+      std::cout << "MIG: Start migrate " << std::endl;
+      auto op_id = task->task_class->task_class_id;
+      auto op_pair = static_id_to_op_map.at(op_id);
+      auto *op_ptr = reinterpret_cast<class Op*>(op_pair.second);
+      op_ptr->migrate(task, dst);
+
+      return 0;
+    }
+
+    static int migrate_task_dummy(parsec_task_t* task, int dst)
+    {
+      return 0;
+    }
+
+
+
+
    public:
     template <typename keymapT = ttg::detail::default_keymap<keyT>>
     Op(const std::string &name, const std::vector<std::string> &innames, const std::vector<std::string> &outnames,
@@ -1430,6 +1450,10 @@ namespace ttg_parsec {
 
       self.release_task = parsec_release_task_to_mempool_update_nbtasks;
       self.complete_execution = complete_task_and_release;
+      if constexpr ( !ttg::meta::is_empty_tuple_v<input_refs_tuple_type> ) 
+        self.migrate_task = migrate_task_to_dst;
+      else
+        self.migrate_task = migrate_task_dummy;
 
       for (i = 0; i < numins; i++) {
         parsec_flow_t *flow = new parsec_flow_t;
