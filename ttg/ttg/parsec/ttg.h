@@ -551,31 +551,14 @@ namespace ttg_parsec {
 
         for(int i = 0; i < nb_input; i++)
         {
-          //migrate_data<i>(key, parsec_task, dst);
-          migrate_data<0>(key, parsec_task, dst); 
+          set_arg_impl<0>(key, parsec_task, dst); 
+          //set_arg_impl<i>(key, parsec_task, dst); 
         } 
 
         auto &world_impl = world.impl();
         world_impl.taskpool()->tdm.module->taskpool_addto_nb_tasks(world_impl.taskpool(), -1);
       }
       
-    }
-
-
-    template <std::size_t i, typename Key>
-    void migrate_data(const Key &key, parsec_task_t* parsec_task, int dst )
-    {
-        using valueT = typename std::tuple_element<i, input_terminals_type>::type::value_type;
-
-        parsec_data_copy_t *copy;
-        copy = parsec_task->data[i].data_in;
-        auto data = copy->device_private;
-
-        using decvalueT = std::decay_t<valueT>;
-        decvalueT val;
-        unpack(val, data, 0);
-
-        set_arg_impl<i>(key, std::move(val), dst);
     }
 
     //MIG_CODE
@@ -968,26 +951,28 @@ namespace ttg_parsec {
     }
 
     // Used to set the i'th argument
-    template <std::size_t i, typename Key, typename Value>
-    void set_arg_impl(const Key &key, Value &&value, int dst) {
-      using valueT = typename std::tuple_element<i, input_values_full_tuple_type>::type;
+    template <std::size_t i, typename Key>
+    void set_arg_impl(const Key &key, parsec_task_t *parsec_task, int dst) {
 
       int owner = dst;
-      
-      // the target task is remote. Pack the information and send it to
-      // the corresponding peer.
-      // TODO do we need to copy value?
+
       using msg_t = detail::msg_t;
       auto &world_impl = world.impl();
       msg_t *msg = new msg_t(get_instance_id(), world_impl.taskpool()->taskpool_id, i);
 
       std::cout << "MIG: set_arg_impl : migrate data to " << dst <<std::endl;
 
+      using valueT = typename std::tuple_element<i, input_values_full_tuple_type>::type;
+      parsec_data_copy_t *copy;
+      copy = parsec_task->data[i].data_in;
+      valueT value = *( reinterpret_cast<valueT *>(copy->device_private) );
       std::size_t mig_status = 1;
+      
       uint64_t pos = 0;
       pos = pack(key, msg->bytes, pos);
       pos = pack(value, msg->bytes, pos);
       pos = pack(mig_status, msg->bytes, pos);
+
       parsec_taskpool_t *tp = world_impl.taskpool();
       tp->tdm.module->outgoing_message_start(tp, owner, NULL);
       tp->tdm.module->outgoing_message_pack(tp, owner, NULL, NULL, 0);
