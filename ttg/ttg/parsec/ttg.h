@@ -544,22 +544,25 @@ namespace ttg_parsec {
 
       if constexpr (!ttg::meta::is_void_v<keyT> )
       {
-        keyT key;
-        unpack(key, parsec_task->ttg_key, 0);
-        
-        std::cout << "MIG: NB_OUTPUT " << nb_input << std::endl;
+        std::cout << "MIG: NB_OUTPUT " << numins << std::endl;
 
-        for(int i = 0; i < nb_input; i++)
-        {
-          set_arg_impl<0>(key, parsec_task, dst); 
-          //set_arg_impl<i>(key, parsec_task, dst); 
-        } 
+        migrate_data(parsec_task, dst, std::make_index_sequence<numins>{});
 
         auto &world_impl = world.impl();
         world_impl.taskpool()->tdm.module->taskpool_addto_nb_tasks(world_impl.taskpool(), -1);
       }
       
     }
+
+    template<typename T, T... IS>
+    void migrate_data(parsec_task_t* parsec_task, int dst, std::integer_sequence<T, IS...> int_seq) 
+    {
+      keyT key;
+      unpack(key, parsec_task->ttg_key, 0);
+      ((set_arg_impl<IS>(key, parsec_task, dst)),...);
+
+    }
+
 
     //MIG_CODE
 
