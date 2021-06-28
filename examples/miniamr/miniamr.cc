@@ -52,9 +52,14 @@ struct Key {
   madness::hashT hash_val;
 
   Key() { morton_3d_rehash(); }
-  Key(int x, int y, int z, int l, int ts) : x(x), y(y), z(z), l(l), ts(ts) { morton_3d_rehash(); }
+  Key(int x, int y, int z, int l, int ts) : x(x), y(y), z(z), l(l), ts(ts) 
+  { 
+    morton_3d_rehash(); 
+    //rehash();
+  }
 
   madness::hashT hash() const { return hash_val; }
+
 
   inline int morton_3d_rehash()
   {
@@ -74,9 +79,8 @@ struct Key {
     Z = (Z | (Z <<  4)) & 0x030C30C3;
     Z = (Z | (Z <<  2)) & 0x09249249;
 
-    uint32_t morton = X | (Y << 1) | (Z << 2);
+    int morton = X | (Y << 1) | (Z << 2);
     hash_val = ( morton << (d-1) ) | l;
-
     return 1;
   }
 
@@ -163,84 +167,32 @@ std::ostream& operator<<(std::ostream& s, const Key& key) {
   return s;
 }
 
-auto make_aggregator(ttg::Edge<Key, Octant_Aggregator_Data>& octant_aggregator, 
-  ttg::Edge<Key, Key>& aggregator_aggregator, ttg::Edge<Key, Key>& inject_task) 
+
+void stencil(Key oct_key, Key parent_key)
+{
+  printf("MINIMAR: OCTANT(x=%d, y=%d, z=%d, l=%d, ts=%d) --HASH %lu-- ---calls---> AGGREGATOR(x=%d, y=%d, z=%d, l=%d, ts=%d) \n", 
+    oct_key.x, oct_key.y, oct_key.z, oct_key.l, oct_key.ts, oct_key.hash_val,
+    parent_key.x, parent_key.y, parent_key.z, parent_key.l, parent_key.ts+1);
+}
+
+
+auto make_aggregator(ttg::Edge<Key, Octant_Aggregator_Data>& octant_aggregator) 
 {
 
-  auto f = [=](const Key& key,  Octant_Aggregator_Data& octant_aggregator1,
-                                Octant_Aggregator_Data& octant_aggregator2,
-                                Octant_Aggregator_Data& octant_aggregator3,
-                                Octant_Aggregator_Data& octant_aggregator4,
-                                Octant_Aggregator_Data& octant_aggregator5,
-                                Octant_Aggregator_Data& octant_aggregator6,
-                                Octant_Aggregator_Data& octant_aggregator7,
-                                Octant_Aggregator_Data& octant_aggregator8, //std::tuple<ttg::Out<Key, Key>,
-                                                                            //    ttg::Out<Key, Key>>& out)
-                                                                            std::tuple<>& out)
+  auto f = [=](const Key& key,  Octant_Aggregator_Data& octant_aggregator_data_1,
+                                Octant_Aggregator_Data& octant_aggregator_data_2,
+                                Octant_Aggregator_Data& octant_aggregator_data_3,
+                                Octant_Aggregator_Data& octant_aggregator_data_4,
+                                Octant_Aggregator_Data& octant_aggregator_data_5,
+                                Octant_Aggregator_Data& octant_aggregator_data_6,
+                                Octant_Aggregator_Data& octant_aggregator_data_7,
+                                Octant_Aggregator_Data& octant_aggregator_data_8, std::tuple<>& out)
             {
               auto [x, y, z, l, ts, h] = key;
-
-              printf("\n MINIMAR: AGGREGATOR(x=%d, y=%d, z=%d, l=%d, ts=%d)\n", x, y, z, l, ts);
-            
-              //if( ts == 1)
-              //{
-                //printf("MINIMAR: I AM HERE \n");
-//
-                //Key octant_key = octant_aggregator1.octant_key;
-                //int D = N / pow(2, octant_key.l+1);
-
-                //ttg::send<1>(Key{octant_key.x, octant_key.y, octant_key.z, octant_key.l+1, octant_key.ts+1}, octant_key, out);
-                //ttg::send<1>(Key{octant_key.x+D, octant_key.y, octant_key.z, octant_key.l+1, octant_key.ts+1}, octant_key, out);
-                //ttg::send<1>(Key{octant_key.x, octant_key.y+D, octant_key.z, octant_key.l+1, octant_key.ts+1}, octant_key, out);
-                //ttg::send<1>(Key{octant_key.x+D, octant_key.y+D, octant_key.z, octant_key.l+1, octant_key.ts+1}, octant_key, out);
-                //ttg::send<1>(Key{octant_key.x, octant_key.y, octant_key.z+D, octant_key.l+1, octant_key.ts+1}, octant_key, out);
-                //ttg::send<1>(Key{octant_key.x+D, octant_key.y, octant_key.z+D, octant_key.l+1, octant_key.ts+1}, octant_key, out);
-                //ttg::send<1>(Key{octant_key.x, octant_key.y+D, octant_key.z+D, octant_key.l+1, octant_key.ts+1}, octant_key, out);
-                //ttg::send<1>(Key{octant_key.x+D, octant_key.y+D, octant_key.z+D, octant_key.l+1, octant_key.ts+1}, octant_key, out);
-
-                //Key injected = octant_aggregator2.octant_key;
-                //ttg::send<1>(Key{injected.x, injected.y, injected.z, injected.l, injected.ts+1}, injected, out);
-//
-                //injected = octant_aggregator3.octant_key;
-                //ttg::send<1>(Key{injected.x, injected.y, injected.z, injected.l, injected.ts+1}, injected, out);
-//
-                //injected = octant_aggregator4.octant_key;
-                //ttg::send<1>(Key{injected.x, injected.y, injected.z, injected.l, injected.ts+1}, injected, out);
-//
-                //injected = octant_aggregator5.octant_key;
-                //ttg::send<1>(Key{injected.x, injected.y, injected.z, injected.l, injected.ts+1}, injected, out);
-//
-                //injected = octant_aggregator6.octant_key;
-                //ttg::send<1>(Key{injected.x, injected.y, injected.z, injected.l, injected.ts+1}, injected, out);
-//
-                //injected = octant_aggregator7.octant_key;
-                //ttg::send<1>(Key{injected.x, injected.y, injected.z, injected.l, injected.ts+1}, injected, out);
-//
-                //injected = octant_aggregator8.octant_key;
-                //ttg::send<1>(Key{injected.x, injected.y, injected.z, injected.l, injected.ts+1}, injected, out);
-
-              //}
-
+              
+              printf("MINIMAR: AGGREGATOR(x=%d, y=%d, z=%d, l=%d, ts=%d --HASH %lu-- ) \n", x, y, z, l, ts, h);
             };
 
-  //return ttg::wrap<Key>(f, ttg::edges(octant_aggregator,                                                                       
-  //                                    octant_aggregator, 
-  //                                    octant_aggregator, 
-  //                                    octant_aggregator, 
-  //                                    octant_aggregator, 
-  //                                    octant_aggregator,
-  //                                    octant_aggregator,
-  //                                    octant_aggregator), ttg::edges(aggregator_aggregator,
-  //                                                                            inject_task),"AGREGATOR", {"octant_key1",
-  //                                                                                                       "octant_key2",
-  //                                                                                                       "octant_key3",
-  //                                                                                                       "octant_key4",
-  //                                                                                                       "octant_key5",
-  //                                                                                                       "octant_key6",
-  //                                                                                                       "octant_key7",
-  //                                                                                                       "octant_key8"}, {"par_aggregator",
-  // 
-  
   return ttg::wrap<Key>(f, ttg::edges(octant_aggregator,                                                                       
                                       octant_aggregator, 
                                       octant_aggregator, 
@@ -248,21 +200,14 @@ auto make_aggregator(ttg::Edge<Key, Octant_Aggregator_Data>& octant_aggregator,
                                       octant_aggregator, 
                                       octant_aggregator,
                                       octant_aggregator,
-                                      octant_aggregator), ttg::edges(),"AGREGATOR", {"octant_key1",
-                                                                                                         "octant_key2",
-                                                                                                         "octant_key3",
-                                                                                                         "octant_key4",
-                                                                                                         "octant_key5",
-                                                                                                         "octant_key6",
-                                                                                                         "octant_key7",
-                                                                                                         "octant_key8"}, {});
-}
-
-void stencil(Key oct_key, Key parent_key)
-{
-  printf("\n MINIMAR: Call OCTANT(x=%d, y=%d, z=%d, l=%d, ts=%d)--->AGGREGATOR(x=%d, y=%d, z=%d, l=%d, ts=%d) \n", 
-    oct_key.x, oct_key.y, oct_key.z, oct_key.l, oct_key.ts,
-    parent_key.x, parent_key.y, parent_key.z, parent_key.l, parent_key.ts+1);
+                                      octant_aggregator), ttg::edges(),"AGREGATOR", {"octant_aggregator_data_1",
+                                                                                    "octant_aggregator_data_2",
+                                                                                    "octant_aggregator_data_3",
+                                                                                    "octant_aggregator_data_4",
+                                                                                    "octant_aggregator_data_5",
+                                                                                    "octant_aggregator_data_6",
+                                                                                    "octant_aggregator_data_7",
+                                                                                    "octant_aggregator_data_8"}, {});
 }
 
 auto make_octant(ttg::Edge<Key, Key>& treeParent_treeChild, ttg::Edge<Key, Octant_Aggregator_Data>& octant_aggregator) 
@@ -270,18 +215,17 @@ auto make_octant(ttg::Edge<Key, Key>& treeParent_treeChild, ttg::Edge<Key, Octan
 
   auto f = [=](const Key& key,  Key& parent_key, std::tuple<ttg::Out<Key, Octant_Aggregator_Data>>& out)
             {
-              auto [x, y, z, l, ts, h] = key;
-              auto [p, q, r, s, t, u] = parent_key;
-              
               stencil(key, parent_key);
-              
+             
+              if(key.ts == 10)
               ttg::send<0>(Key{parent_key.x, parent_key.y, parent_key.z, parent_key.l, parent_key.ts+1}, 
-                Octant_Aggregator_Data{key, parent_key, l}, out);
+                Octant_Aggregator_Data{key, parent_key, parent_key.l}, out);
+            
 
             };
 
   return ttg::wrap<Key>(f, ttg::edges(treeParent_treeChild), ttg::edges(octant_aggregator), "OCTANT", 
-    {"parOctant"}, {"octant_aggregator"});
+    {"parent"}, {"octant_aggregator"});
 }     
 
 auto make_initiator(ttg::Edge<Key, Key>& initiator) 
@@ -290,7 +234,7 @@ auto make_initiator(ttg::Edge<Key, Key>& initiator)
   auto f = [=](const Key& key, 
                std::tuple<ttg::Out<Key, Key>>& out)
             {
-              std::cout<<"Initiated.....\n";
+              printf("INITIATOR --HASH %lu--  \n", key.hash_val);
 
               int D = N / pow(2, key.l+1);
 
@@ -314,17 +258,17 @@ int main(int argc, char** argv)
   N = pow(2, d); //dimension of a blocks is NxNxN.
 
   printf("MINIMAR: d = %d, mask = %d, N = %d \n", d, mask, N);
+  
 
   ttg::ttg_initialize(argc, argv, -1);
   auto world = ttg::ttg_default_execution_context();
 
   ttg::Edge<Key, Key> treeParent_treeChild("treeParent_treeChild");  
   ttg::Edge<Key, Octant_Aggregator_Data> octant_aggregator("octant_aggregator"); 
-  ttg::Edge<Key, Key> aggregator_aggregator("aggregator_aggregator"); 
  
   auto op_initiator = make_initiator(treeParent_treeChild);
   auto op_octant = make_octant(treeParent_treeChild, octant_aggregator);   
-  auto op_aggregator = make_aggregator(octant_aggregator, aggregator_aggregator, treeParent_treeChild);             
+  auto op_aggregator = make_aggregator(octant_aggregator);             
   
   //auto keymap = [=](const Key& key) { return key.z %  world.size(); }; 
   //op_octant->set_keymap(keymap);
