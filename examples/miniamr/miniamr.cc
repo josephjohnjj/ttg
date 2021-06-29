@@ -201,6 +201,7 @@ auto make_aggregator(ttg::Edge<Key, Octant_Aggregator_Data>& aggregator_data1,
                                 Octant_Aggregator_Data& data8, std::tuple<>& out)
             {
               auto [x, y, z, l, ts, h] = key;
+              key_edge_map.erase(key);
               
               printf("MINIMAR: AGGREGATOR(x=%d, y=%d, z=%d, l=%d, ts=%d --HASH %lu-- ) \n", x, y, z, l, ts, h);
             };
