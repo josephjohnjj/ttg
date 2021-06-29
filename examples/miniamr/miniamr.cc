@@ -122,6 +122,7 @@ struct Key {
       else 
         return false;
     }
+    return false;
 
   }
 
@@ -153,6 +154,10 @@ struct Octant_Aggregator_Data
 
 };
 
+std::map<Key, std::atomic<int>> key_edge_map; // keymap used to identify the input edge number
+                                     // of an aggregator task    
+std::mutex key_edge_mutex; // mutex to manage operation on    key_edge_map                
+
 
 namespace std {
   // specialize std::hash for Key
@@ -176,31 +181,38 @@ void stencil(Key oct_key, Key parent_key)
 }
 
 
-auto make_aggregator(ttg::Edge<Key, Octant_Aggregator_Data>& octant_aggregator) 
+auto make_aggregator(ttg::Edge<Key, Octant_Aggregator_Data>& aggregator_data1,
+                     ttg::Edge<Key, Octant_Aggregator_Data>& aggregator_data2,
+                     ttg::Edge<Key, Octant_Aggregator_Data>& aggregator_data3,
+                     ttg::Edge<Key, Octant_Aggregator_Data>& aggregator_data4,
+                     ttg::Edge<Key, Octant_Aggregator_Data>& aggregator_data5,
+                     ttg::Edge<Key, Octant_Aggregator_Data>& aggregator_data6,
+                     ttg::Edge<Key, Octant_Aggregator_Data>& aggregator_data7,
+                     ttg::Edge<Key, Octant_Aggregator_Data>& aggregator_data8) 
 {
 
-  auto f = [=](const Key& key,  Octant_Aggregator_Data& octant_aggregator_data_1,
-                                Octant_Aggregator_Data& octant_aggregator_data_2,
-                                Octant_Aggregator_Data& octant_aggregator_data_3,
-                                Octant_Aggregator_Data& octant_aggregator_data_4,
-                                Octant_Aggregator_Data& octant_aggregator_data_5,
-                                Octant_Aggregator_Data& octant_aggregator_data_6,
-                                Octant_Aggregator_Data& octant_aggregator_data_7,
-                                Octant_Aggregator_Data& octant_aggregator_data_8, std::tuple<>& out)
+  auto f = [=](const Key& key,  Octant_Aggregator_Data& data1,
+                                Octant_Aggregator_Data& data2,
+                                Octant_Aggregator_Data& data3,
+                                Octant_Aggregator_Data& data4,
+                                Octant_Aggregator_Data& data5,
+                                Octant_Aggregator_Data& data6,
+                                Octant_Aggregator_Data& data7,
+                                Octant_Aggregator_Data& data8, std::tuple<>& out)
             {
               auto [x, y, z, l, ts, h] = key;
               
               printf("MINIMAR: AGGREGATOR(x=%d, y=%d, z=%d, l=%d, ts=%d --HASH %lu-- ) \n", x, y, z, l, ts, h);
             };
 
-  return ttg::wrap<Key>(f, ttg::edges(octant_aggregator,                                                                       
-                                      octant_aggregator, 
-                                      octant_aggregator, 
-                                      octant_aggregator, 
-                                      octant_aggregator, 
-                                      octant_aggregator,
-                                      octant_aggregator,
-                                      octant_aggregator), ttg::edges(),"AGREGATOR", {"octant_aggregator_data_1",
+  return ttg::wrap<Key>(f, ttg::edges(aggregator_data1,                                                                       
+                                      aggregator_data2, 
+                                      aggregator_data3, 
+                                      aggregator_data4, 
+                                      aggregator_data5, 
+                                      aggregator_data6,
+                                      aggregator_data7,
+                                      aggregator_data8), ttg::edges(),"AGREGATOR", {"octant_aggregator_data_1",
                                                                                     "octant_aggregator_data_2",
                                                                                     "octant_aggregator_data_3",
                                                                                     "octant_aggregator_data_4",
@@ -210,22 +222,75 @@ auto make_aggregator(ttg::Edge<Key, Octant_Aggregator_Data>& octant_aggregator)
                                                                                     "octant_aggregator_data_8"}, {});
 }
 
-auto make_octant(ttg::Edge<Key, Key>& treeParent_treeChild, ttg::Edge<Key, Octant_Aggregator_Data>& octant_aggregator) 
+int edge_number(Key& key)
+{
+  auto [x, y, z, l, ts, h] = key;
+
+  const std::lock_guard<std::mutex> lock( key_edge_mutex);
+
+  key_edge_map.emplace(key, 0); //insert key-vale if it doesnt exist
+  auto it = key_edge_map.find(key);
+  int terminal_id = it->second++;
+  return terminal_id;
+}
+
+
+auto make_octant(ttg::Edge<Key, Key>& treeParent_treeChild, ttg::Edge<Key, Octant_Aggregator_Data>& aggregator_data1,
+                                                            ttg::Edge<Key, Octant_Aggregator_Data>& aggregator_data2,
+                                                            ttg::Edge<Key, Octant_Aggregator_Data>& aggregator_data3,
+                                                            ttg::Edge<Key, Octant_Aggregator_Data>& aggregator_data4,
+                                                            ttg::Edge<Key, Octant_Aggregator_Data>& aggregator_data5,
+                                                            ttg::Edge<Key, Octant_Aggregator_Data>& aggregator_data6,
+                                                            ttg::Edge<Key, Octant_Aggregator_Data>& aggregator_data7,
+                                                            ttg::Edge<Key, Octant_Aggregator_Data>& aggregator_data8) 
 {
 
-  auto f = [=](const Key& key,  Key& parent_key, std::tuple<ttg::Out<Key, Octant_Aggregator_Data>>& out)
+  auto f = [=](const Key& key,  Key& parent_key, std::tuple<ttg::Out<Key, Octant_Aggregator_Data>,
+                                                            ttg::Out<Key, Octant_Aggregator_Data>,
+                                                            ttg::Out<Key, Octant_Aggregator_Data>,
+                                                            ttg::Out<Key, Octant_Aggregator_Data>,
+                                                            ttg::Out<Key, Octant_Aggregator_Data>,
+                                                            ttg::Out<Key, Octant_Aggregator_Data>,
+                                                            ttg::Out<Key, Octant_Aggregator_Data>,
+                                                            ttg::Out<Key, Octant_Aggregator_Data>>& out)
             {
               stencil(key, parent_key);
-             
-              if(key.ts == 10)
-              ttg::send<0>(Key{parent_key.x, parent_key.y, parent_key.z, parent_key.l, parent_key.ts+1}, 
-                Octant_Aggregator_Data{key, parent_key, parent_key.l}, out);
-            
+  
+              Key aggKey{parent_key.x, parent_key.y, parent_key.z, parent_key.l, parent_key.ts+1};
+              Octant_Aggregator_Data aggData{key, parent_key, parent_key.l};
+              int edge = edge_number(aggKey);
+              printf("EDGE NUM %d \n", edge);
+
+              switch (edge)
+              {
+                case 0: ttg::send<0>(aggKey, aggData, out); break;
+                case 1: ttg::send<1>(aggKey, aggData, out); break;
+                case 2: ttg::send<2>(aggKey, aggData, out); break;
+                case 3: ttg::send<3>(aggKey, aggData, out); break;
+                case 4: ttg::send<4>(aggKey, aggData, out); break;
+                case 5: ttg::send<5>(aggKey, aggData, out); break;
+                case 6: ttg::send<6>(aggKey, aggData, out); break;
+                case 7: ttg::send<7>(aggKey, aggData, out); break;
+                default: printf("Something is wrong \n"); break;
+              }            
 
             };
 
-  return ttg::wrap<Key>(f, ttg::edges(treeParent_treeChild), ttg::edges(octant_aggregator), "OCTANT", 
-    {"parent"}, {"octant_aggregator"});
+  return ttg::wrap<Key>(f, ttg::edges(treeParent_treeChild), ttg::edges(aggregator_data1,
+                                                                        aggregator_data2,
+                                                                        aggregator_data3,
+                                                                        aggregator_data4,
+                                                                        aggregator_data5,
+                                                                        aggregator_data6,
+                                                                        aggregator_data7,
+                                                                        aggregator_data8 ), "OCTANT", {"parent"}, {"octant_aggregator1",
+                                                                                                                   "octant_aggregator2",
+                                                                                                                   "octant_aggregator3",
+                                                                                                                   "octant_aggregator4",
+                                                                                                                   "octant_aggregator5",
+                                                                                                                   "octant_aggregator6",
+                                                                                                                   "octant_aggregator7",
+                                                                                                                   "octant_aggregator8"});
 }     
 
 auto make_initiator(ttg::Edge<Key, Key>& initiator) 
@@ -264,14 +329,25 @@ int main(int argc, char** argv)
   auto world = ttg::ttg_default_execution_context();
 
   ttg::Edge<Key, Key> treeParent_treeChild("treeParent_treeChild");  
-  ttg::Edge<Key, Octant_Aggregator_Data> octant_aggregator("octant_aggregator"); 
+  ttg::Edge<Key, Octant_Aggregator_Data> aggregator_data1("aggregator_data1"); 
+  ttg::Edge<Key, Octant_Aggregator_Data> aggregator_data2("aggregator_data2"); 
+  ttg::Edge<Key, Octant_Aggregator_Data> aggregator_data3("aggregator_data3"); 
+  ttg::Edge<Key, Octant_Aggregator_Data> aggregator_data4("aggregator_data4"); 
+  ttg::Edge<Key, Octant_Aggregator_Data> aggregator_data5("aggregator_data5"); 
+  ttg::Edge<Key, Octant_Aggregator_Data> aggregator_data6("aggregator_data6"); 
+  ttg::Edge<Key, Octant_Aggregator_Data> aggregator_data7("aggregator_data7"); 
+  ttg::Edge<Key, Octant_Aggregator_Data> aggregator_data8("aggregator_data8"); 
  
   auto op_initiator = make_initiator(treeParent_treeChild);
-  auto op_octant = make_octant(treeParent_treeChild, octant_aggregator);   
-  auto op_aggregator = make_aggregator(octant_aggregator);             
+  auto op_octant = make_octant(treeParent_treeChild, aggregator_data1, aggregator_data2, aggregator_data3, 
+                                                     aggregator_data4, aggregator_data5, aggregator_data6, 
+                                                     aggregator_data7, aggregator_data8);   
+  auto op_aggregator = make_aggregator(aggregator_data1, aggregator_data2, aggregator_data3, 
+                                       aggregator_data4, aggregator_data5, aggregator_data6, 
+                                       aggregator_data7, aggregator_data8);              
   
-  //auto keymap = [=](const Key& key) { return key.z %  world.size(); }; 
-  //op_octant->set_keymap(keymap);
+  auto keymap = [=](const Key& key) { return key.z %  world.size(); }; 
+  op_octant->set_keymap(keymap);
 
   auto connected = make_graph_executable(op_initiator.get());
   assert(connected);
