@@ -172,20 +172,35 @@ int edge_number(Key& key)
 
 
 
-std::map<Key, const Key> child_parent_map; // maps a child key to a parent key    
+std::map<Key, Key> child_parent_map; // maps a child key to a parent key    
 std::mutex child_parent_mutex; // mutex to manage operation on parent_map 
 
-int insert_key(Key& child_key, const Key& parent_key )
+int insert_key(Key child_key, Key parent_key )
 {
   const std::lock_guard<std::mutex> lock( child_parent_mutex);
   child_parent_map.emplace(child_key, parent_key); //insert child_key: parent_key
   return 1;
 }
 
-const Key find_key(Key child_key)
+Key find_key(Key child_key)
 {
   auto it = child_parent_map.find(child_key);
   return it->second;
+}
+
+void update_key_ts() // ts should be updated before the root agrregator activates
+                     // the tasks in the next timestep. If this is not done tasks
+                     // will not be able to find the aggregator in thenext timestep
+{
+  for (auto it = child_parent_map.begin(); it != child_parent_map.end(); it++)
+  {
+    auto child_key = it->first;
+    auto parent_key = it->second;
+    child_parent_map.erase(child_key);
+    child_key.ts++;
+    parent_key.ts++;
+    child_parent_map.emplace(child_key, parent_key);
+  }
 }
 
 
