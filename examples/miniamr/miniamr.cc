@@ -43,7 +43,7 @@ inline void inverse_morton_3d(uint32_t& x, uint32_t& y, uint32_t& z,  uint32_t& 
 
 
 struct Key {
-  // (x, y, z, l) where (x, y, z) is the cartesian coordinate of the anchor
+  // (x, y, z, l, ts) where (x, y, z) is the cartesian coordinate of the anchor
   //                    l is the level of the block in the octree
   //                    ts is the timestep
     
@@ -156,7 +156,37 @@ struct Octant_Aggregator_Data
 
 std::map<Key, std::atomic<int>> key_edge_map; // keymap used to identify the input edge number
                                      // of an aggregator task    
-std::mutex key_edge_mutex; // mutex to manage operation on    key_edge_map                
+std::mutex key_edge_mutex; // mutex to manage operation on key_edge_map  
+
+int edge_number(Key& key)
+{
+  auto [x, y, z, l, ts, h] = key;
+
+  const std::lock_guard<std::mutex> lock( key_edge_mutex);
+
+  key_edge_map.emplace(key, 0); //insert key-vale if it doesnt exist
+  auto it = key_edge_map.find(key);
+  int terminal_id = it->second++;
+  return terminal_id;
+}
+
+
+
+std::map<Key, const Key> child_parent_map; // maps a child key to a parent key    
+std::mutex child_parent_mutex; // mutex to manage operation on parent_map 
+
+int insert_key(Key& child_key, const Key& parent_key )
+{
+  const std::lock_guard<std::mutex> lock( child_parent_mutex);
+  child_parent_map.emplace(child_key, parent_key); //insert child_key: parent_key
+  return 1;
+}
+
+const Key find_key(Key child_key)
+{
+  auto it = child_parent_map.find(child_key);
+  return it->second;
+}
 
 
 namespace std {
@@ -223,18 +253,6 @@ auto make_aggregator(ttg::Edge<Key, Octant_Aggregator_Data>& aggregator_data1,
                                                                                     "octant_aggregator_data_8"}, {});
 }
 
-int edge_number(Key& key)
-{
-  auto [x, y, z, l, ts, h] = key;
-
-  const std::lock_guard<std::mutex> lock( key_edge_mutex);
-
-  key_edge_map.emplace(key, 0); //insert key-vale if it doesnt exist
-  auto it = key_edge_map.find(key);
-  int terminal_id = it->second++;
-  return terminal_id;
-}
-
 
 auto make_octant(ttg::Edge<Key, Key>& treeParent_treeChild, ttg::Edge<Key, Octant_Aggregator_Data>& aggregator_data1,
                                                             ttg::Edge<Key, Octant_Aggregator_Data>& aggregator_data2,
@@ -257,11 +275,10 @@ auto make_octant(ttg::Edge<Key, Key>& treeParent_treeChild, ttg::Edge<Key, Octan
             {
               stencil(key, parent_key);
   
-              Key aggKey{parent_key.x, parent_key.y, parent_key.z, parent_key.l, parent_key.ts+1};
+              Key aggKey = find_key(key);
               Octant_Aggregator_Data aggData{key, parent_key, parent_key.l};
               int edge = edge_number(aggKey);
-              printf("EDGE NUM %d \n", edge);
-
+             
               switch (edge)
               {
                 case 0: ttg::send<0>(aggKey, aggData, out); break;
@@ -304,14 +321,39 @@ auto make_initiator(ttg::Edge<Key, Key>& initiator)
 
               int D = N / pow(2, key.l+1);
 
-              ttg::send<0>(Key{key.x, key.y, key.z, key.l+1, key.ts+1}, key, out);
-              ttg::send<0>(Key{key.x+D, key.y, key.z, key.l+1, key.ts+1}, key, out);
-              ttg::send<0>(Key{key.x, key.y+D, key.z, key.l+1, key.ts+1}, key, out);
-              ttg::send<0>(Key{key.x+D, key.y+D, key.z, key.l+1, key.ts+1}, key, out);
-              ttg::send<0>(Key{key.x, key.y, key.z+D, key.l+1, key.ts+1}, key, out);
-              ttg::send<0>(Key{key.x+D, key.y, key.z+D, key.l+1, key.ts+1}, key, out);
-              ttg::send<0>(Key{key.x, key.y+D, key.z+D, key.l+1, key.ts+1}, key, out);
-              ttg::send<0>(Key{key.x+D, key.y+D, key.z+D, key.l+1, key.ts+1}, key, out);
+              Key child_key;
+
+              child_key = {key.x, key.y, key.z, key.l+1, key.ts+1};
+              insert_key(child_key, key);
+              ttg::send<0>(child_key, key, out);
+
+              child_key = {key.x+D, key.y, key.z, key.l+1, key.ts+1};
+              insert_key(child_key, key);
+              ttg::send<0>(child_key, key, out);
+
+              child_key = {key.x, key.y+D, key.z, key.l+1, key.ts+1};
+              insert_key(child_key, key);
+              ttg::send<0>(child_key, key, out);
+
+              child_key = {key.x+D, key.y+D, key.z, key.l+1, key.ts+1};
+              insert_key(child_key, key);
+              ttg::send<0>(child_key, key, out);
+
+              child_key = {key.x, key.y, key.z+D, key.l+1, key.ts+1};
+              insert_key(child_key, key);
+              ttg::send<0>(child_key, key, out);
+              
+              child_key = {key.x+D, key.y, key.z+D, key.l+1, key.ts+1};
+              insert_key(child_key, key);
+              ttg::send<0>(child_key, key, out);
+
+              child_key = {key.x, key.y+D, key.z+D, key.l+1, key.ts+1};
+              insert_key(child_key, key);
+              ttg::send<0>(child_key, key, out);
+
+              child_key = {key.x+D, key.y+D, key.z+D, key.l+1, key.ts+1};
+              insert_key(child_key, key);
+              ttg::send<0>(child_key, key, out);
             };
 
   return ttg::wrap<Key>(f, ttg::edges(), ttg::edges(initiator), "INITIATOR", {}, {"initiator"});
