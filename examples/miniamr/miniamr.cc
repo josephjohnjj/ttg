@@ -48,7 +48,7 @@ struct Key {
   //                    ts is the timestep
     
 
-  int x = 0, y = 0, z = 0, l = 0, ts = 0;
+  int x = -1, y = -1, z = -1, l = -1, ts = -1;
   madness::hashT hash_val;
 
   Key() { morton_3d_rehash(); }
@@ -86,43 +86,17 @@ struct Key {
 
 
   // Equality test
-  bool operator==(const Key& b) const { return x == b.x && y == b.y && z == b.z; }
+  bool operator==(const Key& b) const { return (x == b.x && y == b.y && z == b.z && l == b.l && ts == b.ts); }
   // Inequality test
   bool operator!=(const Key& b) const { return !((*this) == b); }
 
   //less than operator
   bool operator<(const Key& b) const 
   { 
-    int p, q, r;
-
-    p = x^b.x;
-    q = y^b.y;
-    r = z^b.z;
-
-    int max = std::max({p, q, r});
-
-    if(max == p)
-    {
-      if( x < b.x )
-        return true;
-      else 
-        return false;
-    }
-    else if(max == q)
-    {
-      if( y < b.y )
-        return true;
-      else 
-        return false;
-    }
-    else if(max == q)
-    {
-      if( z < b.z )
-        return true;
-      else 
-        return false;
-    }
-    return false;
+    if( (hash_val + ts) < (b.hash_val + b.ts) )
+      return true;
+    else
+      return false;
 
   }
 
@@ -178,31 +152,59 @@ std::mutex child_parent_mutex; // mutex to manage operation on parent_map
 int insert_key(Key child_key, Key parent_key )
 {
   const std::lock_guard<std::mutex> lock( child_parent_mutex);
+
+  auto it = child_parent_map.find(child_key);
+  if(it != child_parent_map.end())
+    printf("INSERT ERROR --> (x=%d, y=%d, z=%d, l=%d, ts=%d) : (x=%d, y=%d, z=%d, l=%d, ts=%d) \n",
+    child_key.x, child_key.y, child_key.z, child_key.l, child_key.ts,
+    parent_key.x, parent_key.y, parent_key.z, parent_key.l, parent_key.ts);
+  //child_parent_map.erase(child_key);
+  //child_parent_map.insert_or_assign(child_key, parent_key); //insert child_key: parent_key
   child_parent_map.emplace(child_key, parent_key); //insert child_key: parent_key
+  //child_parent_map.insert({child_key, parent_key}); //insert child_key: parent_key
+
+  printf("INSERTED --> (x=%d, y=%d, z=%d, l=%d, ts=%d) : (x=%d, y=%d, z=%d, l=%d, ts=%d) \n",
+    child_key.x, child_key.y, child_key.z, child_key.l, child_key.ts,
+    parent_key.x, parent_key.y, parent_key.z, parent_key.l, parent_key.ts); 
   return 1;
 }
 
 Key find_key(Key child_key)
 {
   auto it = child_parent_map.find(child_key);
+
+  //printf("FOUND --> (x=%d, y=%d, z=%d, l=%d, ts=%d) : (x=%d, y=%d, z=%d, l=%d, ts=%d) \n",
+  //  child_key.x, child_key.y, child_key.z, child_key.l, child_key.ts,
+  //  it->second.x, it->second.y, it->second.z, it->second.l, it->second.ts);
+
   return it->second;
 }
 
-void update_key_ts() // ts should be updated before the root agrregator activates
+ void update_key_ts() // ts should be updated before the root agrregator activates
                      // the tasks in the next timestep. If this is not done tasks
                      // will not be able to find the aggregator in thenext timestep
 {
+  printf("^^^ UPDATE ^^^ \n");
+  std::map<Key, Key> temp;
+  temp.clear();
   for (auto it = child_parent_map.begin(); it != child_parent_map.end(); it++)
   {
     auto child_key = it->first;
-    auto parent_key = it->second;
-    child_parent_map.erase(child_key);
     child_key.ts++;
+    auto parent_key = it->second;
     parent_key.ts++;
-    child_parent_map.emplace(child_key, parent_key);
-  }
-}
 
+    temp.insert({child_key, parent_key});
+  }
+  child_parent_map.clear();
+
+  for (auto it = temp.begin(); it != temp.end(); it++)
+    child_parent_map.insert({it->first, it->second});
+
+  temp.clear();
+  
+  printf("^^^ END UPDATE ^^^ \n");
+}
 
 namespace std {
   // specialize std::hash for Key
@@ -218,11 +220,12 @@ std::ostream& operator<<(std::ostream& s, const Key& key) {
 }
 
 
-void stencil(Key oct_key, Key parent_key)
+void stencil(Key oct_key, Key AggKey, int edge)
 {
-  printf("MINIMAR: OCTANT(x=%d, y=%d, z=%d, l=%d, ts=%d) --HASH %lu-- ---calls---> AGGREGATOR(x=%d, y=%d, z=%d, l=%d, ts=%d) \n", 
+  printf("OCTANT(x=%d, y=%d, z=%d, l=%d, ts=%d) --HASH %lu-- ---calls---> AGGREGATOR(x=%d, y=%d, z=%d, l=%d, ts=%d, EDGE = %d \n", 
     oct_key.x, oct_key.y, oct_key.z, oct_key.l, oct_key.ts, oct_key.hash_val,
-    parent_key.x, parent_key.y, parent_key.z, parent_key.l, parent_key.ts+1);
+    AggKey.x, AggKey.y, AggKey.z, AggKey.l, AggKey.ts,
+    edge);
 }
 
 
@@ -233,7 +236,16 @@ auto make_aggregator(ttg::Edge<Key, Octant_Aggregator_Data>& aggregator_data1,
                      ttg::Edge<Key, Octant_Aggregator_Data>& aggregator_data5,
                      ttg::Edge<Key, Octant_Aggregator_Data>& aggregator_data6,
                      ttg::Edge<Key, Octant_Aggregator_Data>& aggregator_data7,
-                     ttg::Edge<Key, Octant_Aggregator_Data>& aggregator_data8) 
+                     ttg::Edge<Key, Octant_Aggregator_Data>& aggregator_data8,
+                     ttg::Edge<Key, Key>& inject_task, 
+                     ttg::Edge<Key, Octant_Aggregator_Data>& aggregator_OutData1,
+                     ttg::Edge<Key, Octant_Aggregator_Data>& aggregator_OutData2,
+                     ttg::Edge<Key, Octant_Aggregator_Data>& aggregator_OutData3,
+                     ttg::Edge<Key, Octant_Aggregator_Data>& aggregator_OutData4,
+                     ttg::Edge<Key, Octant_Aggregator_Data>& aggregator_OutData5,
+                     ttg::Edge<Key, Octant_Aggregator_Data>& aggregator_OutData6,
+                     ttg::Edge<Key, Octant_Aggregator_Data>& aggregator_OutData7,
+                     ttg::Edge<Key, Octant_Aggregator_Data>& aggregator_OutData8) 
 {
 
   auto f = [=](const Key& key,  Octant_Aggregator_Data& data1,
@@ -243,12 +255,125 @@ auto make_aggregator(ttg::Edge<Key, Octant_Aggregator_Data>& aggregator_data1,
                                 Octant_Aggregator_Data& data5,
                                 Octant_Aggregator_Data& data6,
                                 Octant_Aggregator_Data& data7,
-                                Octant_Aggregator_Data& data8, std::tuple<>& out)
+                                Octant_Aggregator_Data& data8, std::tuple<ttg::Out<Key, Key>,
+                                                                          ttg::Out<Key, Octant_Aggregator_Data>,
+                                                                          ttg::Out<Key, Octant_Aggregator_Data>,
+                                                                          ttg::Out<Key, Octant_Aggregator_Data>,
+                                                                          ttg::Out<Key, Octant_Aggregator_Data>,
+                                                                          ttg::Out<Key, Octant_Aggregator_Data>,
+                                                                          ttg::Out<Key, Octant_Aggregator_Data>,
+                                                                          ttg::Out<Key, Octant_Aggregator_Data>,
+                                                                          ttg::Out<Key, Octant_Aggregator_Data>>& out)
             {
               auto [x, y, z, l, ts, h] = key;
+        
               key_edge_map.erase(key);
+
+              int D = N / pow(2, key.l+1);
+              int C = N / pow(2, key.l+2);
+
+              if( x == 0 && y == 0 && z == 0)
+              {
+                printf("ROOT AGGREGATOR(x=%d, y=%d, z=%d, l=%d, ts=%d --HASH %lu-- ) \n", x, y, z, l, ts, h);
+
+                if( ts < 2)
+                {
+
+                  Key child_key;
+                  update_key_ts();
+  
+                  child_key = {key.x, key.y, key.z, key.l, key.ts+1};
+                  ttg::send<0>(child_key, key, out);
+                  child_key = {key.x+D, key.y, key.z, key.l, key.ts+1};
+                  ttg::send<0>(child_key, key, out);
+                  child_key = {key.x, key.y+D, key.z, key.l, key.ts+1};
+                  ttg::send<0>(child_key, key, out);
+                  child_key = {key.x+D, key.y+D, key.z, key.l, key.ts+1};
+                  ttg::send<0>(child_key, key, out);
+                  child_key = {key.x, key.y, key.z+D, key.l, key.ts+1};
+                  ttg::send<0>(child_key, key, out);
+                  child_key = {key.x+D, key.y, key.z+D, key.l, key.ts+1};
+                  ttg::send<0>(child_key, key, out);
+                  child_key = {key.x, key.y+D, key.z+D, key.l, key.ts+1};
+                  ttg::send<0>(child_key, key, out);
+                  //child_key = {key.x+D, key.y+D, key.z+D, key.l, key.ts+1};
+                  //ttg::send<0>(child_key, key, out);
+  
+                  Key OldKey{key.x+D, key.y+D, key.z+D, key.l, key.ts+1};
+                  auto temp = find_key(OldKey);
+                  printf("OLD KEY(x=%d, y=%d, z=%d, l=%d, ts=%d ) --> AGGKEY (x=%d, y=%d, z=%d, l=%d, ts=%d ) \n", 
+                  OldKey.x, OldKey.y, OldKey.z, OldKey.l, OldKey.ts,
+                  temp.x, temp.y, temp.z, temp.l, temp.ts);
+  
+                  child_key = {key.x+D, key.y+D, key.z+D, key.l+1, key.ts+1};
+                  insert_key(child_key, OldKey);
+                  ttg::send<0>(child_key, OldKey, out);
+  
+                  child_key = {key.x+D+C, key.y+D, key.z+D, key.l+1, key.ts+1};
+                  insert_key(child_key, OldKey);
+                  ttg::send<0>(child_key, OldKey, out);
+  
+                  child_key = {key.x+D, key.y+D+C, key.z+D, key.l+1, key.ts+1};
+                  insert_key(child_key, OldKey);
+                  ttg::send<0>(child_key, OldKey, out);
+  
+                  child_key = {key.x+D+C, key.y+D+C, key.z+D, key.l+1, key.ts+1};
+                  insert_key(child_key, OldKey);
+                  ttg::send<0>(child_key, OldKey, out);
+  
+                  child_key = {key.x+D, key.y+D, key.z+D+C, key.l+1, key.ts+1};
+                  insert_key(child_key, OldKey);
+                  ttg::send<0>(child_key, OldKey, out);
+  
+                  child_key = {key.x+D+C, key.y+D, key.z+D+C, key.l+1, key.ts+1};
+                  insert_key(child_key, OldKey);
+                  ttg::send<0>(child_key, OldKey, out);
+  
+                  child_key = {key.x+D, key.y+D+C, key.z+D+C, key.l+1, key.ts+1};
+                  insert_key(child_key, OldKey);
+                  ttg::send<0>(child_key, OldKey, out);
+  
+                  child_key = {key.x+D+C, key.y+D+C, key.z+D+C, key.l+1, key.ts+1};
+                  insert_key(child_key, OldKey);
+                  ttg::send<0>(child_key, OldKey, out);
+  
+                  temp = find_key(OldKey);
+                  printf("MINIMAR: OLD KEY2(x=%d, y=%d, z=%d, l=%d, ts=%d ) --> AGGKEY (x=%d, y=%d, z=%d, l=%d, ts=%d ) \n", 
+                  OldKey.x, OldKey.y, OldKey.z, OldKey.l, OldKey.ts,
+                  temp.x, temp.y, temp.z, temp.l, temp.ts);
+                }
+
+              }
+              //else if(x == 0 && y == 0 && z == 0 && ts == 1)
+              //  printf("COMPLETE\n");
+              else 
+              {
+                Key rootkey = find_key(key);
+                Octant_Aggregator_Data aggData{key, rootkey, rootkey.l};
+                int edge = edge_number(rootkey) + 1;
+
+                printf("*** INTREMEDIATE AGGREGATOR (x=%d, y=%d, z=%d, l=%d, ts=%d) --->  (x=%d, y=%d, z=%d, l=%d, ts=%d) EDGE-%d \n", 
+                  key.x, key.y, key.z, key.l, key.ts,
+                  rootkey.x, rootkey.y, rootkey.z, rootkey.l, rootkey.ts,
+                  edge);
+             
+                switch (edge)
+                {
+                  case 1: ttg::send<1>(rootkey, aggData, out); break;
+                  case 2: ttg::send<2>(rootkey, aggData, out); break;
+                  case 3: ttg::send<3>(rootkey, aggData, out); break;
+                  case 4: ttg::send<4>(rootkey, aggData, out); break;
+                  case 5: ttg::send<5>(rootkey, aggData, out); break;
+                  case 6: ttg::send<6>(rootkey, aggData, out); break;
+                  case 7: ttg::send<7>(rootkey, aggData, out); break;
+                  case 8: ttg::send<8>(rootkey, aggData, out); break;
+                  default: printf("Something is wrong 2\n"); break;
+                }         
+                
+
+              }
+
               
-              printf("MINIMAR: AGGREGATOR(x=%d, y=%d, z=%d, l=%d, ts=%d --HASH %lu-- ) \n", x, y, z, l, ts, h);
             };
 
   return ttg::wrap<Key>(f, ttg::edges(aggregator_data1,                                                                       
@@ -258,14 +383,28 @@ auto make_aggregator(ttg::Edge<Key, Octant_Aggregator_Data>& aggregator_data1,
                                       aggregator_data5, 
                                       aggregator_data6,
                                       aggregator_data7,
-                                      aggregator_data8), ttg::edges(),"AGREGATOR", {"octant_aggregator_data_1",
-                                                                                    "octant_aggregator_data_2",
-                                                                                    "octant_aggregator_data_3",
-                                                                                    "octant_aggregator_data_4",
-                                                                                    "octant_aggregator_data_5",
-                                                                                    "octant_aggregator_data_6",
-                                                                                    "octant_aggregator_data_7",
-                                                                                    "octant_aggregator_data_8"}, {});
+                                      aggregator_data8), ttg::edges(inject_task, aggregator_OutData1, 
+                                                                                 aggregator_OutData2, 
+                                                                                 aggregator_OutData3,
+                                                                                 aggregator_OutData4,
+                                                                                 aggregator_OutData5,
+                                                                                 aggregator_OutData6,
+                                                                                 aggregator_OutData7, 
+                                                                                 aggregator_OutData8),"AGREGATOR", {"octant_aggregator_data_1",
+                                                                                                               "octant_aggregator_data_2",
+                                                                                                               "octant_aggregator_data_3",
+                                                                                                               "octant_aggregator_data_4",
+                                                                                                               "octant_aggregator_data_5",
+                                                                                                               "octant_aggregator_data_6",
+                                                                                                               "octant_aggregator_data_7",
+                                                                                                               "octant_aggregator_data_8"}, {"inject_task", "aggregator_Out1",
+                                                                                                                                                            "aggregator_Out2",
+                                                                                                                                                            "aggregator_Out3",
+                                                                                                                                                            "aggregator_Out4",
+                                                                                                                                                            "aggregator_Out5",
+                                                                                                                                                            "aggregator_Out6",
+                                                                                                                                                            "aggregator_Out7",
+                                                                                                                                                            "aggregator_Out8",});
 }
 
 
@@ -288,12 +427,13 @@ auto make_octant(ttg::Edge<Key, Key>& treeParent_treeChild, ttg::Edge<Key, Octan
                                                             ttg::Out<Key, Octant_Aggregator_Data>,
                                                             ttg::Out<Key, Octant_Aggregator_Data>>& out)
             {
-              stencil(key, parent_key);
-  
+              
               Key aggKey = find_key(key);
               Octant_Aggregator_Data aggData{key, parent_key, parent_key.l};
               int edge = edge_number(aggKey);
-             
+
+              stencil(key, aggKey, edge);
+
               switch (edge)
               {
                 case 0: ttg::send<0>(aggKey, aggData, out); break;
@@ -338,35 +478,35 @@ auto make_initiator(ttg::Edge<Key, Key>& initiator)
 
               Key child_key;
 
-              child_key = {key.x, key.y, key.z, key.l+1, key.ts+1};
+              child_key = {key.x, key.y, key.z, key.l, key.ts};
               insert_key(child_key, key);
               ttg::send<0>(child_key, key, out);
 
-              child_key = {key.x+D, key.y, key.z, key.l+1, key.ts+1};
+              child_key = {key.x+D, key.y, key.z, key.l, key.ts};
               insert_key(child_key, key);
               ttg::send<0>(child_key, key, out);
 
-              child_key = {key.x, key.y+D, key.z, key.l+1, key.ts+1};
+              child_key = {key.x, key.y+D, key.z, key.l, key.ts};
               insert_key(child_key, key);
               ttg::send<0>(child_key, key, out);
 
-              child_key = {key.x+D, key.y+D, key.z, key.l+1, key.ts+1};
+              child_key = {key.x+D, key.y+D, key.z, key.l, key.ts};
               insert_key(child_key, key);
               ttg::send<0>(child_key, key, out);
 
-              child_key = {key.x, key.y, key.z+D, key.l+1, key.ts+1};
+              child_key = {key.x, key.y, key.z+D, key.l, key.ts};
               insert_key(child_key, key);
               ttg::send<0>(child_key, key, out);
               
-              child_key = {key.x+D, key.y, key.z+D, key.l+1, key.ts+1};
+              child_key = {key.x+D, key.y, key.z+D, key.l, key.ts};
               insert_key(child_key, key);
               ttg::send<0>(child_key, key, out);
 
-              child_key = {key.x, key.y+D, key.z+D, key.l+1, key.ts+1};
+              child_key = {key.x, key.y+D, key.z+D, key.l, key.ts};
               insert_key(child_key, key);
               ttg::send<0>(child_key, key, out);
 
-              child_key = {key.x+D, key.y+D, key.z+D, key.l+1, key.ts+1};
+              child_key = {key.x+D, key.y+D, key.z+D, key.l, key.ts};
               insert_key(child_key, key);
               ttg::send<0>(child_key, key, out);
             };
@@ -379,6 +519,10 @@ int main(int argc, char** argv)
 {
   mask = pow(2, d-1) - 1;
   N = pow(2, d); //dimension of a blocks is NxNxN.
+
+  child_parent_map.clear();
+  key_edge_map.clear();
+  
 
   printf("MINIMAR: d = %d, mask = %d, N = %d \n", d, mask, N);
   
@@ -395,12 +539,19 @@ int main(int argc, char** argv)
   ttg::Edge<Key, Octant_Aggregator_Data> aggregator_data6("aggregator_data6"); 
   ttg::Edge<Key, Octant_Aggregator_Data> aggregator_data7("aggregator_data7"); 
   ttg::Edge<Key, Octant_Aggregator_Data> aggregator_data8("aggregator_data8"); 
+  ttg::Edge<Key, Octant_Aggregator_Data> aggregator_Out("aggregator_data8"); 
  
   auto op_initiator = make_initiator(treeParent_treeChild);
+
   auto op_octant = make_octant(treeParent_treeChild, aggregator_data1, aggregator_data2, aggregator_data3, 
                                                      aggregator_data4, aggregator_data5, aggregator_data6, 
-                                                     aggregator_data7, aggregator_data8);   
+                                                     aggregator_data7, aggregator_data8); 
+
   auto op_aggregator = make_aggregator(aggregator_data1, aggregator_data2, aggregator_data3, 
+                                       aggregator_data4, aggregator_data5, aggregator_data6, 
+                                       aggregator_data7, aggregator_data8, 
+                                       treeParent_treeChild, 
+                                       aggregator_data1, aggregator_data2, aggregator_data3, 
                                        aggregator_data4, aggregator_data5, aggregator_data6, 
                                        aggregator_data7, aggregator_data8);              
   
