@@ -1,0 +1,186 @@
+int edge_number(Key key)
+{
+  auto [x, y, z, l, ts, h] = key;
+
+  if(x==0 && y==0 && z==0 && l==1 && ts==1)
+  {
+    return 0;
+  }
+  if(x==32 && y==32 && z==32 && l==1 && ts==1)
+  {
+    return 1;
+  }
+  if(x==0 && y==32 && z==0 && l==1 && ts==1)
+  {
+    return 2;
+  }
+  if(x==32 && y==32 && z==0 && l==1 && ts==1)
+  {
+    return 3;
+  }
+  if(x==32 && y==0 && z==32 && l==1 && ts==1)
+  {
+    return 4;
+  }
+  if(x==0 && y==0 && z==32 && l==1 && ts==1)
+  {
+    return 5;
+  }
+  if(x==0 && y==32 && z==32 && l==1 && ts==1)
+  {
+    return 6;
+  }
+  if(x==32 && y==0 && z==0 && l==1 && ts==1) 
+  {
+    return 7;
+  }
+
+  return -1;
+
+}
+
+
+Key OldKey{key.x+D, key.y+D, key.z+D, key.l, key.ts+1};
+                printf("MINIMAR: OLD KEY(x=%d, y=%d, z=%d, l=%d, ts=%d ) \n", OldKey.x, OldKey.y, OldKey.z, OldKey.l, OldKey.ts);
+
+                child_key = {key.x+D, key.y+D, key.z+D, key.l+1, key.ts+1};
+                insert_key(child_key, OldKey);
+                ttg::send<0>(child_key, OldKey, out);
+
+                child_key = {key.x+D+C, key.y+D, key.z+D, key.l+1, key.ts+1};
+                insert_key(child_key, OldKey);
+                ttg::send<0>(child_key, OldKey, out);
+
+                child_key = {key.x+D, key.y+D+C, key.z+D, key.l+1, key.ts+1};
+                insert_key(child_key, OldKey);
+                ttg::send<0>(child_key, OldKey, out);
+
+                child_key = {key.x+D+C, key.y+D+C, key.z+D, key.l+1, key.ts+1};
+                insert_key(child_key, OldKey);
+                ttg::send<0>(child_key, OldKey, out);
+
+                child_key = {key.x+D, key.y+D, key.z+D+C, key.l+1, key.ts+1};
+                insert_key(child_key, OldKey);
+                ttg::send<0>(child_key, OldKey, out);
+
+                child_key = {key.x+D+C, key.y+D, key.z+D+C, key.l+1, key.ts+1};
+                insert_key(child_key, OldKey);
+                ttg::send<0>(child_key, OldKey, out);
+
+                child_key = {key.x+D, key.y+D+C, key.z+D+C, key.l+1, key.ts+1};
+                insert_key(child_key, OldKey);
+                ttg::send<0>(child_key, OldKey, out);
+
+                child_key = {key.x+D+C, key.y+D+C, key.z+D+C, key.l+1, key.ts+1};
+                insert_key(child_key, OldKey);
+                ttg::send<0>(child_key, OldKey, out);
+
+
+
+
+
+bool operator<(const Key& b) const 
+  { 
+    int p, q, r;
+
+    p = x^b.x;
+    q = y^b.y;
+    r = z^b.z;
+
+    int max = std::max({p, q, r});
+
+    if(max == p)
+    {
+      if( x < b.x )
+        return true;
+      else 
+        return false;
+    }
+    else if(max == q)
+    {
+      if( y < b.y )
+        return true;
+      else 
+        return false;
+    }
+    else if(max == q)
+    {
+      if( z < b.z )
+        return true;
+      else 
+        return false;
+    }
+    return false;
+
+  }
+
+
+ 
+
+
+void update_key_ts() // ts should be updated before the root agrregator activates
+                     // the tasks in the next timestep. If this is not done tasks
+                     // will not be able to find the aggregator in thenext timestep
+{
+  printf("^^^ UPDATE ^^^ \n");
+  for (auto it = child_parent_map.begin(); it != child_parent_map.end(); it++)
+  {
+    auto child_key = it->first;
+    auto parent_key = it->second;
+    child_parent_map.erase(child_key);
+    child_key.ts++;
+    parent_key.ts++;
+    child_parent_map.emplace(child_key, parent_key);
+  }
+  printf("^^^ UPDATE ^^^ \n");
+}
+
+ void update_key_ts() // ts should be updated before the root agrregator activates
+                     // the tasks in the next timestep. If this is not done tasks
+                     // will not be able to find the aggregator in thenext timestep
+{
+  printf("^^^ UPDATE ^^^ \n");
+  std::map<Key, Key> temp;
+  for (auto it = child_parent_map.begin(); it != child_parent_map.end(); it++)
+  {
+
+
+    it->second.ts++;
+    auto child_key = it->first;
+    child_key.ts++;
+
+    auto nh = child_parent_map.extract(it->first);
+    nh.key() = child_key;
+    child_parent_map.insert(move(nh));
+    //auto parent_key = it->second;
+    //child_parent_map.erase(child_key);
+    //child_key.ts++;
+    //parent_key.ts++;
+    //child_parent_map.emplace(child_key, parent_key);
+  }
+  printf("^^^ END UPDATE ^^^ \n");
+}
+
+bool operator<(const Key& b) const 
+  { 
+    if(ts < b.ts)
+      return true;
+    else if(l < b.l)
+      return true;
+    else if(z < b.z)
+      return true;
+    else if(y < b.y)
+      return true;
+    else if(x < b.x)
+      return true;
+
+    return false;
+
+  }
+
+
+#ifndef MINIAMRHT_H
+#define MINIAMRHT_H
+#include "miniamr_ht.h"
+#endif /* MINIAMRHT_H */
+  

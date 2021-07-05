@@ -1,29 +1,4 @@
-#include <parsec/class/parsec_hash_table.h>
-
-//#ifndef MINIAMR_H
-//#define MINIAMR_H
-//#include "miniamr.h"
-//#endif /* MINIAMR_H */
-
-#ifndef KEY_H
-#define KEY_H
-#include "key.h"
-#endif /* KEY_H */
-
-
-
-static parsec_hash_table_t* data_table;
-
-typedef struct data_item_s
-{
-    parsec_list_item_t next;
-    Key octant_key;
-    parsec_hash_table_item_t ht_item;
-    parsec_data_copy_t *data[7];
-} data_item_t;
-
-PARSEC_DECLSPEC PARSEC_OBJ_CLASS_DECLARATION(data_item_t);
-PARSEC_OBJ_CLASS_INSTANCE(data_item_t, parsec_list_item_t, NULL, NULL);
+#include "miniamr_ht.h"
 
 static int ht_key_equal(parsec_key_t a, parsec_key_t b, void *user_data) 
 {

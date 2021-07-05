@@ -8,6 +8,7 @@ using namespace ttg;
 
 
 
+
 auto make_aggregator(ttg::Edge<Key, Octant_Aggregator_Data>& aggregator_data1,
                      ttg::Edge<Key, Octant_Aggregator_Data>& aggregator_data2,
                      ttg::Edge<Key, Octant_Aggregator_Data>& aggregator_data3,
