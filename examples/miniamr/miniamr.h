@@ -10,6 +10,8 @@ using namespace ttg;
 #endif /* KEY_H */
 
 #include "miniamr_ht.h"
+#include "block.h"
+#include "../blockmatrix.h"
 
 /* 
  *  Default parameter values
@@ -200,9 +202,123 @@ void stencil(Key oct_key, Key AggKey, int edge)
     edge);
 }
 
+template <typename T>
 void stencil(Key oct_key)
 {
-  //get_ht_data(1, oct_key);
+  BlockData<double> blockData = *(reinterpret_cast<BlockData<double>*> (get_ht_data(0, oct_key)));
+  BlockMatrix<double> face1 = *(reinterpret_cast<BlockMatrix<double>*> (get_ht_data(1, oct_key)));
+  BlockMatrix<double> face2 = *(reinterpret_cast<BlockMatrix<double>*> (get_ht_data(2, oct_key)));
+  BlockMatrix<double> face3 = *(reinterpret_cast<BlockMatrix<double>*> (get_ht_data(3, oct_key)));
+  BlockMatrix<double> face4 = *(reinterpret_cast<BlockMatrix<double>*> (get_ht_data(4, oct_key)));
+  BlockMatrix<double> face5 = *(reinterpret_cast<BlockMatrix<double>*> (get_ht_data(5, oct_key)));
+  BlockMatrix<double> face6 = *(reinterpret_cast<BlockMatrix<double>*> (get_ht_data(6, oct_key)));
+  
+  int _x = blockData.x();
+  int _y = blockData.y();
+  int _z = blockData.z();
+
+
+  for (int i = 0; i < _x; ++i) 
+      for (int j = 0; j < _y; ++j) 
+        for (int k = 0; k < _z; ++k)
+        {
+            double val = /*same*/    ( blockData(i, j, k) + 
+                         /*top*/      (k != _z-1) ? blockData(i, j, k+1) : face1(i, j) +
+                         /*bottom*/   (k != 0 ) ? blockData(i, j, k-1) : face2(i, j) +
+                         /*forward*/  (j != _y-1) ? blockData(i, j+1, k) : face3(i, k)  + 
+                         /*backward*/ (j != 0) ? blockData(i, j-1, k) : face4(i, k)  +
+                         /*rigt*/     (i != _x-1) ? blockData(i+1, j, k) : face5(j, k)  + 
+                         /*left*/     (i != 0) ? blockData(i-1, j, k) : face6(j, k) 
+                                     ) / 7;
+
+            blockData(i, j, k, val); //store
+                                              
+        }
+            
+
 }
+
+// 1 - top face   
+// 2 - bottom face 
+// 3 - forward  
+// 4 - backward
+// 5 - rigt     
+// 6 - left     
+
+template <typename T>
+BlockMatrix<double> generate_face(int face_num, Key oct_key)
+{
+  BlockData<double> blockData = *(reinterpret_cast<BlockData<double>*> (get_ht_data(0, oct_key)));
+  int _x = blockData.x();
+  int _y = blockData.y();
+  int _z = blockData.z();
+
+  int M, N;
+  BlockMatrix<double> face(M, N); 
+
+  
+  if(face_num == 1)
+  {
+    M = _x;
+    N = _y;
+    for (int i = 0; i < M; ++i) 
+      for (int j = 0; j < N; ++j) 
+          face(i, j) = blockData(i, j, N-1);
+
+    return face;
+  }
+  else if(face_num == 2)
+  {
+    M = _x;
+    N = _y;
+    for (int i = 0; i < M; ++i) 
+      for (int j = 0; j < N; ++j) 
+        face(i, j) = blockData(i, j, 0);
+
+    return face;
+  }
+  else if(face_num == 3)
+  {
+    M = _x;
+    N = _z;
+    for (int i = 0; i < M; ++i) 
+      for (int k = 0; k < N; ++k) 
+          face(i, k) = blockData(i, N-1, k);
+
+    return face;
+  }
+  else if(face_num == 4)
+  {
+    M = _x;
+    N = _z;
+    for (int i = 0; i < M; ++i) 
+      for (int k = 0; k < N; ++k) 
+        face(i, k) = blockData(i, 0, k);
+
+    return face;
+  }
+  else if(face_num == 5)
+  {
+    M = _y;
+    N = _z;
+    for (int j = 0; j < M; ++j) 
+      for (int k = 0; k < N; ++k) 
+        face(j, k) = blockData(N, j, k);
+  
+    return face;
+  }
+  else if(face_num == 6)
+  {
+    M = _y;
+    N = _z;
+    for (int j = 0; j < M; ++j) 
+      for (int k = 0; k < N; ++k) 
+        face(j, k) = blockData(0, j, k);
+
+    return face;
+  }
+}
+
+
 
 

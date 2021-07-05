@@ -24,6 +24,7 @@ class BlockData {
   int x() const { return _x; }
   int y() const { return _y; }
   int z() const { return _z; }
+
   const T* get() const { return m_block.get(); }
   T* get() { return m_block.get(); }
 

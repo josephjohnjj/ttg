@@ -213,6 +213,8 @@ auto make_initiator(ttg::Edge<Key, Key>& initiator)
             {
               printf("INITIATOR --HASH %lu--  \n", key.hash_val);
 
+              //stencil<double>(key);
+
               int D = N / pow(2, key.l+1);
 
               Key child_key;
