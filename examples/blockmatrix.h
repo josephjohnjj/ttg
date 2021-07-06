@@ -48,6 +48,15 @@ class BlockMatrix {
     }
   }
 
+  void fill(T val) {
+    // Initialize all elements of the matrix to 1
+    for (int i = 0; i < _rows; ++i) {
+      for (int j = 0; j < _cols; ++j) {
+        m_block.get()[i * _cols + j] = val;
+      }
+    }
+  }
+
   bool operator==(const BlockMatrix& m) const {
     bool equal = true;
     for (int i = 0; i < _rows; i++) {
