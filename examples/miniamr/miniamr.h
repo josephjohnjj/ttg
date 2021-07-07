@@ -535,13 +535,13 @@ int neighbour_search_higher_refinement(std::vector<Octant_Aggregator_Data> aggDa
 }
 
 int find_neigbours(std::vector<Octant_Aggregator_Data>& aggData, Key par_key, Key child_key, 
-  std::vector<Key>& neighbours)
+  std::vector<Key> neighbours[7])
 {
 
   for(int direction = 1; direction < 7; direction++)
-    if(0 == neighbour_search_same_refinement(aggData, par_key, child_key, neighbours, direction))
-      if(0 == neighbour_search_lower_refinement(aggData, par_key, child_key, neighbours, direction))   
-       if(0 == neighbour_search_higher_refinement(aggData, par_key, child_key, neighbours, direction))
+    if(0 == neighbour_search_same_refinement(aggData, par_key, child_key, neighbours[direction], direction))
+      if(0 == neighbour_search_lower_refinement(aggData, par_key, child_key, neighbours[direction], direction))   
+       if(0 == neighbour_search_higher_refinement(aggData, par_key, child_key, neighbours[direction], direction))
        {
          printf("Border block \n");
        }
