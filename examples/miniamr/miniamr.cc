@@ -242,7 +242,7 @@ auto make_initiator(ttg::Edge<Key, Key>& initiator)
               child_key = {key.x+D, key.y, key.z+D, key.l, key.ts};
               insert_key(child_key, key);
               ttg::send<0>(child_key, key, out);
-
+              
               child_key = {key.x, key.y+D, key.z+D, key.l, key.ts};
               insert_key(child_key, key);
               ttg::send<0>(child_key, key, out);
@@ -250,6 +250,7 @@ auto make_initiator(ttg::Edge<Key, Key>& initiator)
               child_key = {key.x+D, key.y+D, key.z+D, key.l, key.ts};
               insert_key(child_key, key);
               ttg::send<0>(child_key, key, out);
+
             };
 
   return ttg::wrap<Key>(f, ttg::edges(), ttg::edges(initiator), "INITIATOR", {}, {"initiator"});

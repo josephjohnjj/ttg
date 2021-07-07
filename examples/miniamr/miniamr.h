@@ -9,6 +9,11 @@ using namespace ttg;
 #include "key.h"
 #endif /* KEY_H */
 
+#ifndef AGGREGATORDATA_H
+#define AGGREGATORDATA_H
+#include "aggregatordata.h"
+#endif /* AGGREGATORDATA_H */
+
 #include "miniamr_ht.h"
 #include "block.h"
 #include "../blockmatrix.h"
@@ -46,30 +51,6 @@ inline void inverse_morton_3d(uint32_t& x, uint32_t& y, uint32_t& z,  uint32_t& 
   z = ((z >> 8) | z) & 0x030000FF;
   z = ((z >>16) | z) & 0x000003FF;
 }
-
-
-
-struct Octant_Aggregator_Data
-{
-  Key octant_key;
-  Key parent_key;
-  int next_level;
-
-  Octant_Aggregator_Data() = default;
-  Octant_Aggregator_Data(Key key1, Key key2, int level) : 
-    octant_key(key1), parent_key(key2), next_level(level){}
-
-  bool operator==(const Octant_Aggregator_Data& b) const 
-      { return octant_key == b.octant_key && parent_key == b.parent_key && next_level == b.next_level; }
-      
-  bool operator!=(const Octant_Aggregator_Data& b) const { return !((*this) == b); }
-
-  template <typename Archive>
-  void serialize(Archive& ar) {
-    ar& madness::archive::wrap((unsigned char*)this, sizeof(*this));
-  }
-
-};
 
 std::map<Key, std::atomic<int>> key_edge_map; // keymap used to identify the input edge number
                                      // of an aggregator task    
@@ -223,12 +204,12 @@ void stencil(Key oct_key)
         for (int k = 0; k < _z; ++k)
         {
             double val = /*same*/    ( blockData(i, j, k) + 
-                         /*top*/      (k != _z-1) ? blockData(i, j, k+1) : face1(i, j) +
-                         /*bottom*/   (k != 0 ) ? blockData(i, j, k-1) : face2(i, j) +
-                         /*forward*/  (j != _y-1) ? blockData(i, j+1, k) : face3(i, k)  + 
-                         /*backward*/ (j != 0) ? blockData(i, j-1, k) : face4(i, k)  +
-                         /*rigt*/     (i != _x-1) ? blockData(i+1, j, k) : face5(j, k)  + 
-                         /*left*/     (i != 0) ? blockData(i-1, j, k) : face6(j, k) 
+                         /*top*/      (k != _z-1) ? blockData(i, j, k+1) : ( (face1 != NULL) ? face1(i, j) : 0 ) +
+                         /*bottom*/   (k != 0 ) ? blockData(i, j, k-1) : ( (face2 != NULL) ? face2(i, j) : 0 )+
+                         /*forward*/  (j != _y-1) ? blockData(i, j+1, k) : ( (face3 != NULL) ? face3(i, k) : 0 )  + 
+                         /*backward*/ (j != 0) ? blockData(i, j-1, k) : ( (face4 != NULL) ? face4(i, k) : 0 )  +
+                         /*rigt*/     (i != _x-1) ? blockData(i+1, j, k) : ( (face5 != NULL) ? face5(j, k) : 0 )+ 
+                         /*left*/     (i != 0) ? blockData(i-1, j, k) : ( (face6 != NULL) ? face6(j, k) : 0 )
                                      ) / 7;
 
             blockData(i, j, k, val); //store
@@ -238,12 +219,12 @@ void stencil(Key oct_key)
 
 }
 
-// 1 - top face   
-// 2 - bottom face 
-// 3 - forward  
-// 4 - backward
-// 5 - rigt     
-// 6 - left     
+// 1 - top face  (z = N)
+// 2 - bottom face (z = 0)
+// 3 - forward  (x = N)
+// 4 - backward (x = 0)
+// 5 - rigt (y = N)
+// 6 - left (z = 0)   
 
 template <typename T>
 BlockMatrix<double> generate_face(int face_num, Key oct_key)
@@ -279,26 +260,6 @@ BlockMatrix<double> generate_face(int face_num, Key oct_key)
   }
   else if(face_num == 3)
   {
-    M = _x;
-    N = _z;
-    for (int i = 0; i < M; ++i) 
-      for (int k = 0; k < N; ++k) 
-          face(i, k) = blockData(i, N-1, k);
-
-    return face;
-  }
-  else if(face_num == 4)
-  {
-    M = _x;
-    N = _z;
-    for (int i = 0; i < M; ++i) 
-      for (int k = 0; k < N; ++k) 
-        face(i, k) = blockData(i, 0, k);
-
-    return face;
-  }
-  else if(face_num == 5)
-  {
     M = _y;
     N = _z;
     for (int j = 0; j < M; ++j) 
@@ -307,7 +268,7 @@ BlockMatrix<double> generate_face(int face_num, Key oct_key)
   
     return face;
   }
-  else if(face_num == 6)
+  else if(face_num == 4)
   {
     M = _y;
     N = _z;
@@ -317,7 +278,279 @@ BlockMatrix<double> generate_face(int face_num, Key oct_key)
 
     return face;
   }
+  else if(face_num == 5)
+  {
+    M = _x;
+    N = _z;
+    for (int i = 0; i < M; ++i) 
+      for (int k = 0; k < N; ++k) 
+          face(i, k) = blockData(i, N-1, k);
+
+    return face;
+  }
+  else if(face_num == 6)
+  {
+    M = _x;
+    N = _z;
+    for (int i = 0; i < M; ++i) 
+      for (int k = 0; k < N; ++k) 
+        face(i, k) = blockData(i, 0, k);
+
+    return face;
+  }
+  
 }
+
+int find_child_num(Key par_key, Key child_key)
+{
+  bool b0 = ( (par_key.z ^ child_key.z) == 0 ) ? 0 : 1;
+  bool b1 = ( (par_key.y ^ child_key.y) == 0 ) ? 0 : 1;
+  bool b2 = ( (par_key.x ^ child_key.x) == 0 ) ? 0 : 1;
+
+  int child_num = 0 | b2 << 2 | b1 << 1 | b0;
+
+  if(child_num == 0 && (par_key.l == child_key.l) )
+    return 0;
+  else
+    return child_num + 1;
+
+}
+
+int neighbour_search_same_refinement(std::vector<Octant_Aggregator_Data>& aggData,
+  Key par_key, Key child_key, std::vector<Key>& neighbours, int direction)
+{
+  Key search_key;
+  int D = N / pow(2, child_key.l); //TODO:verify
+  int found = 0;
+
+  if(direction == 1)
+  {
+    search_key = child_key; 
+    search_key.z += D;
+  }
+  else if(direction == 2)
+  {
+    search_key = child_key; 
+    search_key.z -= D;
+  }
+  else if(direction == 3)
+  {
+    search_key = child_key; 
+    search_key.x += D;
+  }
+  else if(direction == 4)
+  {
+    search_key = child_key; 
+    search_key.x -= D;
+  }
+  else if(direction == 5)
+  {
+    search_key = child_key; 
+    search_key.y += D;
+  }
+  else if(direction == 6)
+  {
+    search_key = child_key; 
+    search_key.y -= D;
+  }
+
+  for (auto& it : aggData)
+  {
+    if(it.octant_key == search_key)
+    {
+      found = 1;
+      neighbours.push_back(Key{search_key.x, search_key.y, search_key.z, search_key.l, search_key.ts});
+      break;
+    }
+  }
+    
+  if(found == 1)
+    return 1;
+  else
+    return 0;
+}
+
+int neighbour_search_lower_refinement(std::vector<Octant_Aggregator_Data>& aggData,
+  Key par_key, Key child_key, std::vector<Key>& neighbours, int direction)
+{
+  Key search_key;
+  int D = N / pow(2, par_key.l); //TODO:verify
+  int found = 0;
+
+  if(direction == 1)
+  {
+    search_key = par_key; 
+    search_key.z += D;
+  }
+  else if(direction == 2)
+  {
+    search_key = par_key; 
+    search_key.z -= D;
+  }
+  else if(direction == 3)
+  {
+    search_key = par_key; 
+    search_key.x += D;
+  }
+  else if(direction == 4)
+  {
+    search_key = par_key; 
+    search_key.x -= D;
+  }
+  else if(direction == 5)
+  {
+    search_key = par_key; 
+    search_key.y += D;
+  }
+  else if(direction == 6)
+  {
+    search_key = par_key; 
+    search_key.y -= D;
+  }
+
+  for (auto& it : aggData)
+  {
+    if(it.octant_key == search_key)
+    {
+      found = 1;
+      neighbours.push_back(Key{search_key.x, search_key.y, search_key.z, search_key.l, search_key.ts});
+      break;
+    }
+  }
+    
+  if(found == 1)
+    return 1;
+  else
+    return 0;
+}
+
+int neighbour_search_higher_refinement(std::vector<Octant_Aggregator_Data> aggData,
+  Key par_key, Key child_key, std::vector<Key>& neighbours, int direction)
+{
+  Key search_key;
+  int D = N / pow(2, child_key.l); //TODO:verify
+  int found = 0;
+
+  //search only one key. If that is found the rest
+  // can be inferred
+
+  if(direction == 1)
+  {
+    search_key = child_key; 
+    search_key.z += D;
+    search_key.l += 1;
+  }
+  else if(direction == 2)
+  {
+    search_key = child_key; 
+    search_key.z -= D;
+    search_key.l += 1;
+  }
+  else if(direction == 3)
+  {
+    search_key = child_key; 
+    search_key.x += D;
+    search_key.l += 1;
+  }
+  else if(direction == 4)
+  {
+    search_key = child_key; 
+    search_key.x -= D;
+    search_key.l += 1;
+  }
+  else if(direction == 5)
+  {
+    search_key = child_key; 
+    search_key.y += D;
+    search_key.l += 1;
+  }
+  else if(direction == 6)
+  {
+    search_key = child_key; 
+    search_key.y -= D;
+    search_key.l += 1;
+  }
+
+  for (auto& it : aggData)
+  {
+    if(it.octant_key == search_key)
+    {
+      found = 1;
+      break;
+    }
+  }
+    
+  if(found == 1)
+  {
+    auto [x, y, z, l, ts, h] = search_key;
+    int DD = N / pow(2, search_key.l); //TODO:verify
+    if(direction == 1)
+    {
+      neighbours.push_back(Key{x, y, z, l, ts});
+      neighbours.push_back(Key{x+DD, y, z, l, ts});
+      neighbours.push_back(Key{x, y+DD, z, l, ts});
+      neighbours.push_back(Key{x+DD, y+DD, z, l, ts});
+    }
+    else if(direction == 2)
+    {
+      neighbours.push_back(Key{x, y, z, l, ts});
+      neighbours.push_back(Key{x+DD, y, z, l, ts});
+      neighbours.push_back(Key{x, y+DD, z, l, ts});
+      neighbours.push_back(Key{x+DD, y+DD, z, l, ts});
+    }
+    else if(direction == 3)
+    {
+      neighbours.push_back(Key{x, y, z, l, ts});
+      neighbours.push_back(Key{x, y+DD, z, l, ts});
+      neighbours.push_back(Key{x, y, z+DD, l, ts});
+      neighbours.push_back(Key{x, y+DD, z+DD, l, ts});
+    }
+    else if(direction == 4)
+    {
+      neighbours.push_back(Key{x, y, z, l, ts});
+      neighbours.push_back(Key{x, y+DD, z, l, ts});
+      neighbours.push_back(Key{x, y, z+DD, l, ts});
+      neighbours.push_back(Key{x, y+DD, z+DD, l, ts});
+    }
+    else if(direction == 5)
+    {
+      neighbours.push_back(Key{x, y, z, l, ts});
+      neighbours.push_back(Key{x+DD, y, z, l, ts});
+      neighbours.push_back(Key{x, y, z+DD, l, ts});
+      neighbours.push_back(Key{x+DD, y, z+DD, l, ts});
+    }
+    else if(direction == 6)
+    {
+      neighbours.push_back(Key{x, y, z, l, ts});
+      neighbours.push_back(Key{x+DD, y, z, l, ts});
+      neighbours.push_back(Key{x, y, z+DD, l, ts});
+      neighbours.push_back(Key{x+DD, y, z+DD, l, ts});
+    }
+
+    return 1;
+  }
+  else
+    return 0;
+
+}
+
+int find_neigbours(std::vector<Octant_Aggregator_Data>& aggData, Key par_key, Key child_key, 
+  std::vector<Key>& neighbours)
+{
+
+  for(int direction = 1; direction < 7; direction++)
+    if(0 == neighbour_search_same_refinement(aggData, par_key, child_key, neighbours, direction))
+      if(0 == neighbour_search_lower_refinement(aggData, par_key, child_key, neighbours, direction))   
+       if(0 == neighbour_search_higher_refinement(aggData, par_key, child_key, neighbours, direction))
+       {
+         printf("Border block \n");
+       }
+
+  return 0;
+}
+
+
+
 
 
 

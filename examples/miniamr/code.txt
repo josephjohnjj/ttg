@@ -1,0 +1,8 @@
+ile aggregatordata.h added. Functions to find the neighbours of
+a key implemented in miniamr.h
+
+find_child_num(): returns the child number of a key with respect to
+its parent.
+find_neigbours(): finds the neighbours of a key. The neoghbours can be
+in the same refinement level, lower refinement level, or higher refinement
+level.

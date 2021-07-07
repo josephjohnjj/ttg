@@ -79,6 +79,9 @@ void insert_ht_data(int data_id, Key octant_key, void* data)
     if (NULL == ht_data_item) 
     {
         ht_data_item = PARSEC_OBJ_NEW(data_item_t);
+        for(int i = 0; i < 7 ;i++)  
+            ht_data_item->data[i] = NULL;
+            
         ht_data_item->data[data_id] = copy;
         ht_data_item->ht_item.key = octant_key.hash();
         parsec_hash_table_nolock_insert(data_table, &ht_data_item->ht_item);
