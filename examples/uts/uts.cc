@@ -99,7 +99,7 @@ auto make_node(ttg::Edge<Key, std::array<char, 20>>& edge) {
         unsigned char my_state_char[20];
         std::array<char, 20> my_state_array;
 
-        auto [l, n, s, h] = key;
+        auto [l, n, s, h] = key; 
 
         //std::cout<<"node("<< l <<", "<< n << ")" << std::endl;
         auto world = ttg::ttg_default_execution_context();
@@ -121,6 +121,9 @@ auto make_node(ttg::Edge<Key, std::array<char, 20>>& edge) {
           next_l = l + 1;
           for (int i = 0; i < numChildren; i++) 
           {
+            for (int i = 0; i < computeGranularity - 1; i++) //just for granularuty porpose
+              rng_spawn(par_state_char, my_state_char, s);
+
             next_n = (nonLeafBF * n) + i;
             ttg::send<0>(Key{next_l, next_n, i}, my_state_array, out);
           }
