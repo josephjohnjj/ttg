@@ -1369,7 +1369,6 @@ namespace ttg_parsec {
       auto op_id = task->task_class->task_class_id;
       auto op_pair = static_id_to_op_map.at(op_id);
       auto *op_ptr = reinterpret_cast<class Op*>(op_pair.second);
-      ready_task_dec();
       op_ptr->migrate(task, dst);
 
       return 0;
