@@ -82,7 +82,7 @@ namespace ttg_parsec {
   static int static_unpack_msg(parsec_comm_engine_t *ce, uint64_t tag, void *data, long unsigned int size, int src_rank,
                                void *obj) {
     
-    std::cout << "DEBUG: static_unpack_msg 85" << std::endl;
+    //std::cout << "DEBUG: static_unpack_msg 85" << std::endl;
 
     static_set_arg_fct_type static_set_arg_fct;
     int rank;
@@ -101,12 +101,12 @@ namespace ttg_parsec {
       static_set_arg_fct(data, size, op_pair.second);
       tp->tdm.module->incoming_message_end(tp, NULL);
 
-      std::cout << "DEBUG: try 104" << std::endl;
+      //std::cout << "DEBUG: try 104" << std::endl;
 
       return 0;
     } catch (const std::out_of_range &e) {
 
-      std::cout << "DEBUG: catch 109" << std::endl;
+      //std::cout << "DEBUG: catch 109" << std::endl;
 
       void *data_cpy = malloc(size);
       assert(data_cpy != 0);
@@ -465,7 +465,7 @@ namespace ttg_parsec {
     static auto make_set_args_fcts(std::index_sequence<IS...>) {
       using resultT = decltype(set_arg_from_msg_fcts);
 
-      std::cout << "DEBUG: make_set_args_fcts 468" << std::endl;
+      //std::cout << "DEBUG: make_set_args_fcts 468" << std::endl;
 
       return resultT{{&Op::set_arg_from_msg<IS>...}};
     }
@@ -544,7 +544,7 @@ namespace ttg_parsec {
 
       if constexpr (!ttg::meta::is_void_v<keyT> )
       {
-        std::cout << "MIG: NB_OUTPUT " << numins << std::endl;
+        //std::cout << "MIG: NB_OUTPUT " << numins << std::endl;
 
         migrate_data(parsec_task, dst, std::make_index_sequence<numins>{});
 
@@ -573,7 +573,7 @@ namespace ttg_parsec {
     template <typename T>
     uint64_t unpack(T &obj, void *_bytes, uint64_t pos) {
 
-      std::cout << "DEBUG: unpack 542" << std::endl;
+      //std::cout << "DEBUG: unpack 542" << std::endl;
 
       const ttg_data_descriptor *dObj = ttg::get_data_descriptor<ttg::meta::remove_cvr_t<T>>();
       uint64_t payload_size;
@@ -591,7 +591,7 @@ namespace ttg_parsec {
     template <typename T>
     uint64_t pack(T &obj, void *bytes, uint64_t pos) {
 
-      std::cout << "DEBUG: pack 560" << std::endl;
+      //std::cout << "DEBUG: pack 560" << std::endl;
 
       const ttg_data_descriptor *dObj = ttg::get_data_descriptor<ttg::meta::remove_cvr_t<T>>();
       uint64_t payload_size = dObj->payload_size(&obj);
@@ -606,7 +606,7 @@ namespace ttg_parsec {
 
     static void static_set_arg(void *data, std::size_t size, ttg::OpBase *bop) {
 
-      std::cout << "DEBUG: static_set_arg 566" << std::endl;
+      //std::cout << "DEBUG: static_set_arg 566" << std::endl;
 
       assert(size >= sizeof(msg_header_t) &&
              "Trying to unpack as message that does not hold enough bytes to represent a single header");
@@ -614,14 +614,14 @@ namespace ttg_parsec {
       derivedT *obj = reinterpret_cast<derivedT *>(bop);
       if (-1 != hd->param_id) {
 
-        std::cout << "DEBUG: (obj->*member)(data, size) 576" << std::endl;
+        //std::cout << "DEBUG: (obj->*member)(data, size) 576" << std::endl;
         
         auto member = obj->set_arg_from_msg_fcts[hd->param_id];
         (obj->*member)(data, size);
 
       } else {
         
-          std::cout << "DEBUG: obj->template set_arg<keyT>()" << std::endl;
+          //std::cout << "DEBUG: obj->template set_arg<keyT>()" << std::endl;
 
         if constexpr (ttg::meta::is_empty_tuple_v<input_refs_tuple_type>) {
           if constexpr (ttg::meta::is_void_v<keyT>) {
@@ -651,7 +651,7 @@ namespace ttg_parsec {
     template <std::size_t i>
     void set_arg_from_msg(void *data, std::size_t size) {
 
-      std::cout << "DEBUG: set_arg_from_msg 610" << std::endl;
+      //std::cout << "DEBUG: set_arg_from_msg 610" << std::endl;
 
       using valueT = typename std::tuple_element<i, input_terminals_type>::type::value_type;
       using msg_t = detail::msg_t;
@@ -660,7 +660,7 @@ namespace ttg_parsec {
       if constexpr (!ttg::meta::is_void_v<keyT> && !ttg::meta::is_empty_tuple_v<input_refs_tuple_type> &&
                     !std::is_void_v<valueT>) {
 
-        std::cout << "DEBUG: set_arg_from_msg case 1" << std::endl; 
+        //std::cout << "DEBUG: set_arg_from_msg case 1" << std::endl; 
 
         std::size_t mig_status;
         keyT key;
@@ -670,7 +670,7 @@ namespace ttg_parsec {
         pos = unpack(val, msg->bytes, pos);
         pos = unpack(mig_status, msg->bytes, pos);
 
-        std::cout<<"MIG: migrated task status " << mig_status << std::endl;
+        //std::cout<<"MIG: migrated task status " << mig_status << std::endl;
 
         if(mig_status == 0)  
           set_arg<i, keyT, valueT>(key, std::move(val));
@@ -681,7 +681,7 @@ namespace ttg_parsec {
       } else if constexpr (!ttg::meta::is_void_v<keyT> && !ttg::meta::is_empty_tuple_v<input_refs_tuple_type> &&
                            std::is_void_v<valueT>) {
 
-        std::cout << "DEBUG: set_arg_from_msg case 2" << std::endl; 
+        //std::cout << "DEBUG: set_arg_from_msg case 2" << std::endl; 
 
         keyT key;
         unpack(key, msg->bytes, 0);
@@ -690,7 +690,7 @@ namespace ttg_parsec {
       } else if constexpr (!ttg::meta::is_void_v<keyT> && ttg::meta::is_empty_tuple_v<input_refs_tuple_type> &&
                            std::is_void_v<valueT>) {
 
-        std::cout << "DEBUG: set_arg_from_msg case 3" << std::endl; 
+        //std::cout << "DEBUG: set_arg_from_msg case 3" << std::endl; 
 
         keyT key;
         unpack(key, msg->bytes, 0);
@@ -699,7 +699,7 @@ namespace ttg_parsec {
       } else if constexpr (ttg::meta::is_void_v<keyT> && !ttg::meta::is_empty_tuple_v<input_refs_tuple_type> &&
                            !std::is_void_v<valueT>) {
 
-        std::cout << "DEBUG: set_arg_from_msg case 4" << std::endl; 
+        //std::cout << "DEBUG: set_arg_from_msg case 4" << std::endl; 
 
         using decvalueT = std::decay_t<valueT>;
         decvalueT val;
@@ -709,7 +709,7 @@ namespace ttg_parsec {
       } else if constexpr (ttg::meta::is_void_v<keyT> && !ttg::meta::is_empty_tuple_v<input_refs_tuple_type> &&
                            std::is_void_v<valueT>) {
         
-        std::cout << "DEBUG: set_arg_from_msg case 5" << std::endl; 
+        //std::cout << "DEBUG: set_arg_from_msg case 5" << std::endl; 
 
         set_arg<i, keyT, ttg::Void>(ttg::Void{});
         // case 6
@@ -725,7 +725,7 @@ namespace ttg_parsec {
     std::enable_if_t<!ttg::meta::is_void_v<Key> && !std::is_void_v<std::decay_t<Value>>, void> set_arg_local(
         const Key &key, Value &&value) {
 
-          std::cout << "DEBUG: set_arg_local 657" << std::endl;
+          //std::cout << "DEBUG: set_arg_local 657" << std::endl;
 
       set_arg_local_impl<i>(key, std::forward<Value>(value));
     }
@@ -734,7 +734,7 @@ namespace ttg_parsec {
     std::enable_if_t<ttg::meta::is_void_v<Key> && !std::is_void_v<std::decay_t<Value>>, void> set_arg_local(
         Value &&value) {
 
-          std::cout << "DEBUG: set_arg_local 666" << std::endl;
+          //std::cout << "DEBUG: set_arg_local 666" << std::endl;
 
       set_arg_local_impl<i>(ttg::Void{}, std::forward<Value>(value));
     }
@@ -752,7 +752,7 @@ namespace ttg_parsec {
     template <std::size_t i, typename Key, typename Value>
     void set_arg_local_impl(const Key &key, Value &&value) {
 
-      std::cout << "DEBUG: set_arg_local_impl 678" << std::endl;
+      //std::cout << "DEBUG: set_arg_local_impl 678" << std::endl;
 
       using valueT = typename std::tuple_element<i, input_values_full_tuple_type>::type;
       constexpr const bool valueT_is_Void = ttg::meta::is_void_v<valueT>;
@@ -871,7 +871,7 @@ namespace ttg_parsec {
     template <std::size_t i, typename Key, typename Value>
     std::enable_if_t<!ttg::meta::is_void_v<Key> && !std::is_void_v<std::decay_t<Value>>, void> set_arg(const Key &key,
                                                                                                        Value &&value) {
-      std::cout << "DEBUG: set_arg 779" << std::endl;
+      //std::cout << "DEBUG: set_arg 779" << std::endl;
 
       set_arg_impl<i>(key, std::forward<Value>(value));
     }
@@ -880,7 +880,7 @@ namespace ttg_parsec {
     template <std::size_t i, typename Key, typename Value>
     std::enable_if_t<ttg::meta::is_void_v<Key> && !std::is_void_v<std::decay_t<Value>>, void> set_arg(Value &&value) {
       
-      std::cout << "DEBUG: set_arg 788" << std::endl;
+      //std::cout << "DEBUG: set_arg 788" << std::endl;
 
       set_arg_impl<i>(ttg::Void{}, std::forward<Value>(value));
     }
@@ -890,7 +890,7 @@ namespace ttg_parsec {
     template <std::size_t i, std::size_t mig_status, typename Key, typename Value>
     std::enable_if_t<!ttg::meta::is_void_v<Key> && !std::is_void_v<std::decay_t<Value>>, void> set_arg(const Key &key,
                                                                                                        Value &&value) {
-      std::cout << "MIG: set_arg 885" << std::endl;
+      //std::cout << "MIG: set_arg 885" << std::endl;
 
       set_arg_impl<i, mig_status>(key, std::forward<Value>(value));
     }
@@ -907,12 +907,12 @@ namespace ttg_parsec {
       if (owner == ttg_default_execution_context().rank()) {
         if constexpr (!ttg::meta::is_void_v<keyT>)
         {
-          std::cout << "DEBUG: set_arg_impl 800" << std::endl;
+          //std::cout << "DEBUG: set_arg_impl 800" << std::endl;
           set_arg_local<i, keyT, Value>(key, std::forward<Value>(value));
         }
         else
         {
-          std::cout << "DEBUG: set_arg_impl 805" << std::endl;
+          //std::cout << "DEBUG: set_arg_impl 805" << std::endl;
           set_arg_local<i, keyT, Value>(std::forward<Value>(value));
         }
         return;
@@ -924,7 +924,7 @@ namespace ttg_parsec {
       auto &world_impl = world.impl();
       msg_t *msg = new msg_t(get_instance_id(), world_impl.taskpool()->taskpool_id, i);
       
-      std::cout << "DEBUG: set_arg_impl - key+value 850" << std::endl;
+      //std::cout << "DEBUG: set_arg_impl - key+value 850" << std::endl;
     
       std::size_t mig_status = 0;
       uint64_t pos = 0;
@@ -948,12 +948,12 @@ namespace ttg_parsec {
       
       if constexpr (!ttg::meta::is_void_v<keyT>)
       {
-        std::cout << "MIG: set_arg_impl 947" << std::endl;
+        //std::cout << "MIG: set_arg_impl 947" << std::endl;
         set_arg_local<i, keyT, Value>(key, std::forward<Value>(value));
       }
       else
       {
-        std::cout << "MIG: set_arg_impl 952" << std::endl;
+        //std::cout << "MIG: set_arg_impl 952" << std::endl;
         set_arg_local<i, keyT, Value>(std::forward<Value>(value));
       }
       return;
@@ -970,7 +970,7 @@ namespace ttg_parsec {
       auto &world_impl = world.impl();
       msg_t *msg = new msg_t(get_instance_id(), world_impl.taskpool()->taskpool_id, i);
 
-      std::cout << "MIG: set_arg_impl : migrate data to " << dst <<std::endl;
+      //std::cout << "MIG: set_arg_impl : migrate data to " << dst <<std::endl;
 
       using valueT = typename std::tuple_element<i, input_values_full_tuple_type>::type;
       parsec_data_copy_t *copy;
@@ -1000,7 +1000,7 @@ namespace ttg_parsec {
       static_assert(ttg::meta::is_empty_tuple_v<input_refs_tuple_type>,
                     "logic error: set_arg (case 3) called but input_refs_tuple_type is nonempty");
 
-      std::cout << "DEBUG: set_args 801" << std::endl;
+      //std::cout << "DEBUG: set_args 801" << std::endl;
 
       const auto owner = keymap(key);
       auto &world_impl = world.impl();
@@ -1034,7 +1034,7 @@ namespace ttg_parsec {
         if (tracing()) ttg::print(world.rank(), ":", get_name(), " : ", key, ": submitting task for op ");
         world_impl.increment_sent_to_sched();
 
-        std::cout << "DEBUG: schedule 833" << std::endl; 
+        //std::cout << "DEBUG: schedule 833" << std::endl; 
 
         __parsec_schedule(es, &task->parsec_task, 0);
 
@@ -1049,7 +1049,7 @@ namespace ttg_parsec {
         tp->tdm.module->outgoing_message_start(tp, owner, NULL);
         tp->tdm.module->outgoing_message_pack(tp, owner, NULL, NULL, 0);
 
-        std::cout << "DEBUG: packing and sending key 856" << std::endl;
+        //std::cout << "DEBUG: packing and sending key 856" << std::endl;
 
         parsec_ce.send_am(&parsec_ce, world_impl.parsec_ttg_tag(), owner, static_cast<void *>(msg),
                           sizeof(msg_header_t) + pos);
@@ -1094,7 +1094,7 @@ namespace ttg_parsec {
         if (tracing()) ttg::print(world.rank(), ":", get_name(), " : submitting task for op ");
         world_impl.increment_sent_to_sched();
 
-        std::cout << "DEBUG: schedule 886" << std::endl;
+        //std::cout << "DEBUG: schedule 886" << std::endl;
 
         __parsec_schedule(es, &task->parsec_task, 0);
 
@@ -1189,20 +1189,20 @@ namespace ttg_parsec {
       if constexpr (!ttg::meta::is_void_v<keyT> && !ttg::meta::is_empty_tuple_v<input_refs_tuple_type> &&
                     !std::is_void_v<valueT>) {
 
-        std::cout << "DEBUG: constexpr 977" << std::endl;
+        //std::cout << "DEBUG: constexpr 977" << std::endl;
 
         auto move_callback = [this](const keyT &key, valueT &&value) {
 
-          std::cout << "DEBUG: constexpr set_arg 991 " << std::endl;
+          //std::cout << "DEBUG: constexpr set_arg 991 " << std::endl;
 
           set_arg<i, keyT, valueT>(key, std::forward<valueT>(value));
         };
 
-        std::cout << "DEBUG: constexpr 983" << std::endl;
+        //std::cout << "DEBUG: constexpr 983" << std::endl;
 
         auto send_callback = [this](const keyT &key, const valueT &value) {
 
-          std::cout << "DEBUG: constexpr set_arg 1000 " << std::endl;
+          //std::cout << "DEBUG: constexpr set_arg 1000 " << std::endl;
 
           set_arg<i, keyT, const valueT &>(key, value);
         };
@@ -1212,7 +1212,7 @@ namespace ttg_parsec {
       else if constexpr (!ttg::meta::is_void_v<keyT> && !ttg::meta::is_empty_tuple_v<input_refs_tuple_type> &&
                          std::is_void_v<valueT>) {
         
-        std::cout << "DEBUG: constexpr 992" << std::endl;
+        //std::cout << "DEBUG: constexpr 992" << std::endl;
 
         auto send_callback = [this](const keyT &key) { set_arg<i, keyT, ttg::Void>(key, ttg::Void{}); };
         input.set_callback(send_callback, send_callback);
@@ -1221,7 +1221,7 @@ namespace ttg_parsec {
       else if constexpr (!ttg::meta::is_void_v<keyT> && ttg::meta::is_empty_tuple_v<input_refs_tuple_type> &&
                          std::is_void_v<valueT>) {
         
-        std::cout << "DEBUG: constexpr 1000" << std::endl;
+        //std::cout << "DEBUG: constexpr 1000" << std::endl;
 
         auto send_callback = [this](const keyT &key) { set_arg<keyT>(key); };
         input.set_callback(send_callback, send_callback);
@@ -1230,7 +1230,7 @@ namespace ttg_parsec {
       else if constexpr (ttg::meta::is_void_v<keyT> && !ttg::meta::is_empty_tuple_v<input_refs_tuple_type> &&
                          !std::is_void_v<valueT>) {
         
-        std::cout << "DEBUG: constexpr 1008" << std::endl;
+        //std::cout << "DEBUG: constexpr 1008" << std::endl;
 
         auto move_callback = [this](valueT &&value) { set_arg<i, keyT, valueT>(std::forward<valueT>(value)); };
         auto send_callback = [this](const valueT &value) { set_arg<i, keyT, const valueT &>(value); };
@@ -1240,7 +1240,7 @@ namespace ttg_parsec {
       else if constexpr (ttg::meta::is_void_v<keyT> && !ttg::meta::is_empty_tuple_v<input_refs_tuple_type> &&
                          std::is_void_v<valueT>) {
 
-        std::cout << "DEBUG: constexpr 1018" << std::endl;
+        //std::cout << "DEBUG: constexpr 1018" << std::endl;
 
         auto send_callback = [this]() { set_arg<i, keyT, ttg::Void>(ttg::Void{}); };
         input.set_callback(send_callback, send_callback);
@@ -1249,7 +1249,7 @@ namespace ttg_parsec {
       else if constexpr (ttg::meta::is_void_v<keyT> && ttg::meta::is_empty_tuple_v<input_refs_tuple_type> &&
                          std::is_void_v<valueT>) {
         
-         std::cout << "DEBUG: constexpr 1025" << std::endl;
+         //std::cout << "DEBUG: constexpr 1025" << std::endl;
 
         auto send_callback = [this]() { set_arg<keyT>(); };
         input.set_callback(send_callback, send_callback);
@@ -1260,7 +1260,7 @@ namespace ttg_parsec {
     template <std::size_t... IS>
     void register_input_callbacks(std::index_sequence<IS...>) {
 
-      std::cout << "DEBUG: register_input_callback 1042" << std::endl;
+      //std::cout << "DEBUG: register_input_callback 1042" << std::endl;
 
       int junk[] = {0, (register_input_callback<typename std::tuple_element<IS, input_terminals_type>::type, IS>(
                             std::get<IS>(input_terminals)),
@@ -1271,7 +1271,7 @@ namespace ttg_parsec {
     template <std::size_t... IS, typename inedgesT>
     void connect_my_inputs_to_incoming_edge_outputs(std::index_sequence<IS...>, inedgesT &inedges) {
 
-      std::cout << "DEBUG: connect_my_inputs_to_incoming_edge_outputs 1053" << std::endl;
+      //std::cout << "DEBUG: connect_my_inputs_to_incoming_edge_outputs 1053" << std::endl;
 
       int junk[] = {0, (std::get<IS>(inedges).set_out(&std::get<IS>(input_terminals)), 0)...};
       junk[0]++;
@@ -1280,7 +1280,7 @@ namespace ttg_parsec {
     template <std::size_t... IS, typename outedgesT>
     void connect_my_outputs_to_outgoing_edge_inputs(std::index_sequence<IS...>, outedgesT &outedges) {
 
-      std::cout << "DEBUG: connect_my_outputs_to_outgoing_edge_inputs 1062" << std::endl;
+      //std::cout << "DEBUG: connect_my_outputs_to_outgoing_edge_inputs 1062" << std::endl;
 
       int junk[] = {0, (std::get<IS>(outedges).set_in(&std::get<IS>(output_terminals)), 0)...};
       junk[0]++;
@@ -1289,7 +1289,7 @@ namespace ttg_parsec {
     template <typename input_terminals_tupleT, std::size_t... IS, typename flowsT>
     void _initialize_flows(std::index_sequence<IS...>, flowsT &&flows) {
 
-      std::cout << "DEBUG: _initialize_flows 1071" << std::endl;
+      //std::cout << "DEBUG: _initialize_flows 1071" << std::endl;
 
       int junk[] = {0,
                     (*(const_cast<std::remove_const_t<decltype(flows[IS]->flow_flags)> *>(&(flows[IS]->flow_flags))) =
@@ -1303,7 +1303,7 @@ namespace ttg_parsec {
     template <typename input_terminals_tupleT, typename flowsT>
     void initialize_flows(flowsT &&flows) {
 
-      std::cout << "DEBUG: _initialize_flows 1085" << std::endl;
+      //std::cout << "DEBUG: _initialize_flows 1085" << std::endl;
 
       _initialize_flows<input_terminals_tupleT>(
           std::make_index_sequence<std::tuple_size<input_terminals_tupleT>::value>{}, flows);
@@ -1365,7 +1365,7 @@ namespace ttg_parsec {
     static int migrate_task_to_dst(parsec_task_t* task, int dst)
     {
     
-      std::cout << "MIG: Start migrate " << std::endl;
+      //std::cout << "MIG: Start migrate " << std::endl;
       auto op_id = task->task_class->task_class_id;
       auto op_pair = static_id_to_op_map.at(op_id);
       auto *op_ptr = reinterpret_cast<class Op*>(op_pair.second);
@@ -1395,7 +1395,7 @@ namespace ttg_parsec {
                      ? decltype(keymap)(ttg::detail::default_keymap<keyT>(world))
                      : decltype(keymap)(std::forward<keymapT>(keymap_))) {
 
-      std::cout << "Op constructor 1222" << std::endl; 
+      //std::cout << "Op constructor 1222" << std::endl; 
 
       // Cannot call these in base constructor since terminals not yet constructed
       if (innames.size() != std::tuple_size<input_terminals_type>::value)
@@ -1578,7 +1578,7 @@ namespace ttg_parsec {
     template <typename Key = keyT>
     std::enable_if_t<!ttg::meta::is_void_v<Key>, void> invoke(const Key &key) {
 
-      std::cout << "DEBUG: invoke 1332" << std::endl;
+      //std::cout << "DEBUG: invoke 1332" << std::endl;
 
       TTG_OP_ASSERT_EXECUTABLE();
 
@@ -1612,7 +1612,7 @@ namespace ttg_parsec {
     // Register the static_op function to associate it to instance_id
     void register_static_op_function(void) {
 
-      std::cout << "DEBUG: register_static_op_function 1397" << std::endl;
+      //std::cout << "DEBUG: register_static_op_function 1397" << std::endl;
 
       int rank;
       MPI_Comm_rank(MPI_COMM_WORLD, &rank);
@@ -1625,7 +1625,7 @@ namespace ttg_parsec {
       static_id_to_op_map.insert(std::make_pair(get_instance_id(), call));
       if (delayed_unpack_actions.count(get_instance_id()) > 0) {
 
-        std::cout << "DEBUG: unpack @ register_static_op_function 1410" << std::endl; 
+        //std::cout << "DEBUG: unpack @ register_static_op_function 1410" << std::endl; 
 
         auto tp = world_impl.taskpool();
 
