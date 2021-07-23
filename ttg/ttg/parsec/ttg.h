@@ -852,7 +852,14 @@ namespace ttg_parsec {
         //else
         //{
         //  std::cout << "DEBUG: schedule 742" << std::endl;
-          __parsec_schedule(es, &task->parsec_task, 0);
+
+        int owner;
+        if constexpr (!ttg::meta::is_void_v<Key>)
+          owner = keymap(key);
+        if (owner != ttg_default_execution_context().rank()) //migrated task
+          recv_task_inc();
+
+        __parsec_schedule(es, &task->parsec_task, 0);
 //
         //}
 
@@ -1054,7 +1061,7 @@ namespace ttg_parsec {
     template <typename Key = keyT>
     std::enable_if_t<ttg::meta::is_void_v<Key>, void> set_arg() {
       static_assert(ttg::meta::is_empty_tuple_v<input_refs_tuple_type>,
-                    "logic error: set_arg (case 3) called but input_refs_tuple_type is nonempty");
+                    "logic error: set_arg (case 6) called but input_refs_tuple_type is nonempty");
 
       const auto owner = keymap();
       if (owner == ttg_default_execution_context().rank()) {
@@ -1362,6 +1369,7 @@ namespace ttg_parsec {
       auto op_id = task->task_class->task_class_id;
       auto op_pair = static_id_to_op_map.at(op_id);
       auto *op_ptr = reinterpret_cast<class Op*>(op_pair.second);
+      ready_task_dec();
       op_ptr->migrate(task, dst);
 
       return 0;
