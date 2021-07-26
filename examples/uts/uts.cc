@@ -121,7 +121,7 @@ auto make_node(ttg::Edge<Key, std::array<char, 20>>& edge) {
           next_l = l + 1;
           for (int i = 0; i < numChildren; i++) 
           {
-            for (int i = 0; i < computeGranularity - 1; i++) //just for granularuty porpose
+            for (int j = 0; j < computeGranularity - 1; j++) //just for granularuty porpose
               rng_spawn(par_state_char, my_state_char, s);
 
             next_n = (nonLeafBF * n) + i;
