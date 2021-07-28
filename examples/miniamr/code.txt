@@ -1,0 +1,168 @@
+ile aggregatordata.h added. Functions to find the neighbours of
+a key implemented in miniamr.h
+
+find_child_num(): returns the child number of a key with respect to
+its parent.
+find_neigbours(): finds the neighbours of a key. The neoghbours can be
+in the same refinement level, lower refinement level, or higher refinement
+level.
+
+
+for( auto it = refinement_copy.begin(); it != refinement_copy.end(); it++)
+                  {
+                    Key new_octkey, new_parkey;
+                    Key octkey = it->second.octant_key;
+                    Key parkey = it->second.parent_key;
+
+                    if(octkey.l == it->second.next_level)
+                    {
+                      new_octkey = Key{octkey.x, octkey.y, octkey.z, octkey.l, octkey.ts+1};
+                      new_parkey = find_key(new_octkey);
+                      insert_key(new_octkey, new_parkey);
+                      ttg::send<0>(new_octkey, parkey, out);
+
+                    }
+                    else
+                    {
+
+                      new_parkey = Key{octkey.x, octkey.y, octkey.z, octkey.l, octkey.ts+1};
+                      int D = N / pow(2, new_parkey.l+2);
+
+                      new_octkey = {octkey.x, octkey.y, octkey.z, octkey.l+1, octkey.ts+1};
+                      insert_key(new_octkey, new_parkey);
+                      ttg::send<0>(new_octkey, new_parkey, out);
+
+                      new_octkey = {octkey.x + D, octkey.y, octkey.z, octkey.l+1, octkey.ts+1};
+                      insert_key(new_octkey, new_parkey);
+                      ttg::send<0>(new_octkey, new_parkey, out);
+
+                      new_octkey = {octkey.x, octkey.y + D, octkey.z, octkey.l+1, octkey.ts+1};
+                      insert_key(new_octkey, new_parkey);
+                      ttg::send<0>(new_octkey, new_parkey, out);
+
+                      new_octkey = {octkey.x + D, octkey.y + D, octkey.z, octkey.l+1, octkey.ts+1};
+                      insert_key(new_octkey, new_parkey);
+                      ttg::send<0>(new_octkey, new_parkey, out);
+
+                      new_octkey = {octkey.x, octkey.y, octkey.z + D, octkey.l+1, octkey.ts+1};
+                      insert_key(new_octkey, new_parkey);
+                      ttg::send<0>(new_octkey, new_parkey, out);
+
+                      new_octkey = {octkey.x + D, octkey.y, octkey.z + D, octkey.l+1, octkey.ts+1};
+                      insert_key(new_octkey, new_parkey);
+                      ttg::send<0>(new_octkey, new_parkey, out);
+
+                      new_octkey = {octkey.x, octkey.y + D, octkey.z + D, octkey.l+1, octkey.ts+1};
+                      insert_key(new_octkey, new_parkey);
+                      ttg::send<0>(new_octkey, new_parkey, out);
+
+                      new_octkey = {octkey.x + D, octkey.y + D, octkey.z + D, octkey.l+1, octkey.ts+1};
+                      insert_key(new_octkey, new_parkey);
+                      ttg::send<0>(new_octkey, new_parkey, out);
+
+
+                    }
+                  }
+
+
+
+
+
+auto make_initiator(ttg::Edge<Key, Key>& initiator) 
+{
+
+  auto f = [=](const Key& key, 
+               std::tuple<ttg::Out<Key, Key>>& out)
+            {
+              printf("INITIATOR --HASH %lu--  \n", key.hash_val);
+
+
+              create_ht(); 
+              BlockData<Point<Var, double>> *block = new BlockData<Point<Var, double>> (N, N, N);
+              block->fill();
+              insert_ht_data(0, key, (void *) block);
+
+
+              int D = N / pow(2, key.l+1);
+
+              Key child_key;
+
+              child_key = {key.x, key.y, key.z, key.l+1, key.ts+1};
+              insert_key(child_key, key);
+              ttg::send<0>(child_key, key, out);
+
+              child_key = {key.x+D, key.y, key.z, key.l+1, key.ts+1};
+              insert_key(child_key, key);
+              ttg::send<0>(child_key, key, out);
+
+              child_key = {key.x, key.y+D, key.z, key.l+1, key.ts+1};
+              insert_key(child_key, key);
+              ttg::send<0>(child_key, key, out);
+
+              child_key = {key.x+D, key.y+D, key.z, key.l+1, key.ts+1};
+              insert_key(child_key, key);
+              ttg::send<0>(child_key, key, out);
+
+              child_key = {key.x, key.y, key.z+D, key.l+1, key.ts+1};
+              insert_key(child_key, key);
+              ttg::send<0>(child_key, key, out);
+              
+              child_key = {key.x+D, key.y, key.z+D, key.l+1, key.ts+1};
+              insert_key(child_key, key);
+              ttg::send<0>(child_key, key, out);
+              
+              child_key = {key.x, key.y+D, key.z+D, key.l+1, key.ts+1};
+              insert_key(child_key, key);
+              ttg::send<0>(child_key, key, out);
+
+              child_key = {key.x+D, key.y+D, key.z+D, key.l+1, key.ts+1};
+              insert_key(child_key, key);
+              ttg::send<0>(child_key, key, out);
+
+            };
+
+  return ttg::wrap<Key>(f, ttg::edges(), ttg::edges(initiator), "INITIATOR", {}, {"initiator"});
+} 
+
+
+
+ printf(" ***** REFI(x=%d, y=%d, z=%d, l=%d, ts=%d) NEI(x=%d, y=%d, z=%d, l=%d, ts=%d) \n", 
+              oct_key.x, oct_key.y, oct_key.z, oct_key.l, oct_key.ts,
+              nei_key.x, nei_key.y, nei_key.z, nei_key.l, nei_key.ts);
+
+
+void update_key_ts() // ts should be updated before the root agrregator activates
+                     // the tasks in the next timestep. If this is not done tasks
+                     // will not be able to find the aggregator in thenext timestep
+{
+  printf("^^^ UPDATE ^^^ \n");
+  
+  for (auto it = child_parent_map.begin(); it != child_parent_map.end(); it++)
+    it->second.ts++;
+  
+  printf("^^^ END UPDATE ^^^ \n");
+}
+
+int update_key_refine(Key key)
+{
+  printf("^^^ UPDATE update_key_refine ^^^ \n");
+  const std::lock_guard<std::mutex> lock( child_parent_mutex);
+  
+  //auto node = child_parent_map.extract(key);
+  //key.refine = 1;
+  //if (!node.empty())
+  //{
+  //    node.key() = key;
+  //    child_parent_map.insert(std::move(node));
+  //}
+
+  auto entry = child_parent_map.find(key);
+  if (entry != end(child_parent_map))
+  {
+      auto const value = std::move(entry->second);
+      child_parent_map.erase(entry);
+      key.refine = -1;
+      child_parent_map.insert({key, std::move(value)});
+  }
+  //printf("^^^ UPDATE END update_key_refine ^^^ \n");
+}

@@ -1,0 +1,26 @@
+for (k=0; k < nT; k++) 
+{
+    if (id == ownerIdTile[k][k])
+        TdpotrfL(wT[k], A[k][k]);
+    for (i=k+1; i < nT; i++) 
+    {
+        if (id == ownerIdTile[i][k] && !emptyTile[i][k])
+        PdtrsmRLTN(wT[k], wT[i], 1.0, A[k][k], A[i][k]);
+        for (i=k+1; i < nT; i++)
+            for (j=k+1; j <= i; j++)
+                if (!emptyTile[i][k] && !emptyTile[k][j]) 
+                { //sparse bit
+                    if (id == ownerIdTile[i][j]) 
+                    {
+                        if (emptyTile[i][j] == 1) //fill-in, sparse bit
+                            A[i][j] = TnewZero(wT); 
+                        PdgemmNT(wT[i], wT[j], wT[k], -1., A[i][k], A[j][k], 1., A[i][j]);
+                    }
+                    emptyTile[i][j] = 0; //sparse bit
+                } 
+    }  
+
+
+1. what if the diagonal block is sparse
+
+add_ttg_executable(uts uts/uts.cc uts/rng/brg_sha1.c uts/rng/brg_sha1.h LINK_LIBRARIES MADworld)
