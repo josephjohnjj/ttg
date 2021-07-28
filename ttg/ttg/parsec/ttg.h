@@ -549,7 +549,7 @@ namespace ttg_parsec {
         migrate_data(parsec_task, dst, std::make_index_sequence<numins>{});
 
         auto &world_impl = world.impl();
-        world_impl.taskpool()->tdm.module->taskpool_addto_nb_tasks(world_impl.taskpool(), -1);
+        //world_impl.taskpool()->tdm.module->taskpool_addto_nb_tasks(world_impl.taskpool(), -1);
       }
       
     }
