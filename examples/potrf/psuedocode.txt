@@ -19,4 +19,8 @@ for (k=0; k < nT; k++)
                     emptyTile[i][j] = 0; //sparse bit
                 } 
     }  
-}
+
+
+1. what if the diagonal block is sparse
+
+add_ttg_executable(uts uts/uts.cc uts/rng/brg_sha1.c uts/rng/brg_sha1.h LINK_LIBRARIES MADworld)
