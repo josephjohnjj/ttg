@@ -285,7 +285,7 @@ auto initiator(DistMatrix<T>& A,
                           ttg::Out<Key, BlockMatrix<T>>,
                           ttg::Out<Key, BlockMatrix<T>>>& out){
     /* kick off first POTRF */
-    if(A.is_local(0, 0))
+    if(A.is_local(0, 0)) 
       ttg::send<0>(Key{0, 0, 0}, A(0, 0), out);
 
     for (int i = 1; i < A.rows(); i++) {

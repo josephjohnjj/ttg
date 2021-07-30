@@ -5,7 +5,7 @@ for (k=0; k < nT; k++)
     for (i=k+1; i < nT; i++) 
     {
         if (id == ownerIdTile[i][k] && !emptyTile[i][k])
-        PdtrsmRLTN(wT[k], wT[i], 1.0, A[k][k], A[i][k]);
+            PdtrsmRLTN(wT[k], wT[i], 1.0, A[k][k], A[i][k]);
         for (i=k+1; i < nT; i++)
             for (j=k+1; j <= i; j++)
                 if (!emptyTile[i][k] && !emptyTile[k][j]) 
@@ -20,7 +20,9 @@ for (k=0; k < nT; k++)
                 } 
     }  
 
+- initially wT[k] denotes the size of square diagonal block k, 
+- emptyTile[i][j] signifies whether tile (i,j) is empty:
 
 1. what if the diagonal block is sparse
 
-add_ttg_executable(uts uts/uts.cc uts/rng/brg_sha1.c uts/rng/brg_sha1.h LINK_LIBRARIES MADworld)
+

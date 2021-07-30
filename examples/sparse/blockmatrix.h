@@ -238,6 +238,16 @@ class DistMatrix
     return ttg::ttg_default_execution_context().rank() == rank_of(row, col);
   }
 
+  bool is_empty(int row, int col) const {
+    T* ptr = static_cast<T*>(parsec_data_copy_get_ptr(
+                      parsec_data_get_copy(dcA->super.super.data_of(&dcA->super.super, row, col), 0)));
+                      
+    if(ptr == NULL || ptr == nullptr)
+      return 1;
+    else  
+      return 0;
+  }
+
   int rows(void) const {
     return dcA->super.mt;
   }
