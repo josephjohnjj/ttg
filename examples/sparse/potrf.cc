@@ -41,11 +41,40 @@ struct Key {
   }
 };
 
+struct Key1 {
+  int K = 0;
+  madness::hashT hash_val;
+
+  Key1() { rehash(); }
+  Key1(int K) : K(K){ rehash(); }
+
+  madness::hashT hash() const { return hash_val; }
+  void rehash() {
+    hash_val = K;
+  }
+
+  // Equality test
+  bool operator==(const Key1& b) const { return K == b.K; }
+
+  // Inequality test
+  bool operator!=(const Key1& b) const { return !((*this) == b); }
+
+  template <typename Archive>
+  void serialize(Archive& ar) {
+    ar& madness::archive::wrap((unsigned char*)this, sizeof(*this));
+  }
+};
+
 namespace std {
   // specialize std::hash for Key
   template <>
   struct hash<Key> {
     std::size_t operator()(const Key& s) const noexcept { return s.hash(); }
+  };
+
+  template <>
+  struct hash<Key1> {
+    std::size_t operator()(const Key1& s) const noexcept { return s.hash(); }
   };
 }  // namespace std
 
@@ -95,7 +124,8 @@ auto make_potrf(DistMatrix<T>& A,
     /* send the tile to outputs */
     for (int m = I+1; m < A.rows(); ++m) {
       /* send tile to trsm */
-      ttg::send<1>(Key(m, J, K), tile_kk, out);
+      if(!is_empty(m, J))
+        ttg::send<1>(Key(m, J, K), tile_kk, out);
     }
   };
   return ttg::wrap(f, ttg::edges(input), ttg::edges(output_result, output_trsm), "POTRF", {"tile_kk"}, {"output_result", "output_trsm"});
@@ -295,7 +325,7 @@ auto initiator(DistMatrix<T>& A,
         ttg::send<1>(Key{i, 0, 0}, A(i, 0), out);
       /* send syrk to SYRK */
       if(A.is_local(i, i))
-        ttg::send<2>(Key{i, i, 0}, A(i, i), out);
+        ttg::send<2>(Key{i, i, 0}, A(i, i), out); 
       for (int j = 1; j < i; j++) {
         /* send gemm to GEMM */
         if(A.is_local(i, j))

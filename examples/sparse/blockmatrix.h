@@ -21,21 +21,6 @@ class BlockMatrix {
 
   BlockMatrix(int rows, int cols, T* block) : _rows(rows), _cols(cols), m_block(block) {}
 
-  // Copy constructor
-  /*BlockMatrix(const BlockMatrix<T>& other) : _rows(other._rows), _cols(other._cols),
-              m_block(std::make_shared<T>(*other.m_block)) {}
-
-  //Move constructor
-  BlockMatrix(BlockMatrix<T>&& other) : _rows(other._rows), _cols(other._cols),
-              m_block(std::make_shared<T>(*other.m_block)) //is it possible to use move instead?
-  {}
-
-  BlockMatrix<T> operator=(BlockMatrix<T> other) {
-    //std::shared_ptr<T>(other.get()).swap(m_block);
-    std::swap(*this, other);
-    return *this;
-  }*/
-
   ~BlockMatrix() {}
 
   int size() const { return _rows * _cols; }
@@ -49,6 +34,15 @@ class BlockMatrix {
     for (int i = 0; i < _rows; ++i) {
       for (int j = 0; j < _cols; ++j) {
         m_block.get()[i * _cols + j] = 1;
+      }
+    }
+  }
+
+  void fill(double val) {
+    // Initialize all elements of the matrix to 1
+    for (int i = 0; i < _rows; ++i) {
+      for (int j = 0; j < _cols; ++j) {
+        m_block.get()[i * _cols + j] = val;
       }
     }
   }
