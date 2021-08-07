@@ -51,16 +51,19 @@ struct Key {
   // (l, n, s) where l is the level of the node in the tree and
   //                 m is the position of the node in that level
   //                 s is the spwan number, ie, it is the sth spawn of its parent
+  //                 p is the node where the parent was executed.
 
-  int l = 0, n = 0, s = 0;
+  long long int l = 0, n = 0;
+  int s, p; 
   madness::hashT hash_val;
 
   Key() { rehash(); }
-  Key(int l, int n, int s) : l(l), n(n), s(s) { rehash(); }
+  Key(long long int l, long long int n, int s) : l(l), n(n), s(s), p(0){ rehash(); }
+  Key(long long int l, long long int n, int s, int p) : l(l), n(n), s(s), p(p){ rehash(); }
 
   madness::hashT hash() const { return hash_val; }
   void rehash() {
-    hash_val = (static_cast<madness::hashT>(l) << 48) ^ (static_cast<madness::hashT>(n) << 32) ^ (s << 16);
+    hash_val = (static_cast<madness::hashT>(l) << 32) ^ (static_cast<madness::hashT>(n) << 16) ^ (s << 8);
   }
 
   // Equality test
@@ -83,7 +86,7 @@ namespace std {
 }  // namespace std
 
 std::ostream& operator<<(std::ostream& s, const Key& key) {
-  s << "Key(" << key.l << ", " << key.n << ")";
+  s << "Key(" << key.l << ", " << key.n << ", " << key.s << ", " << key.p << ")";
   return s;
 }
 
@@ -95,41 +98,41 @@ auto make_node(ttg::Edge<Key, std::array<char, 20>>& edge) {
           std::tuple<ttg::Out<Key, std::array<char, 20>>>& out) {
 
         int next_l, next_n;
-        unsigned char par_state_char[20];
         unsigned char my_state_char[20];
         std::array<char, 20> my_state_array;
 
-        auto [l, n, s, h] = key; 
+        auto [l, n, s, p, h] = key; 
 
-        //std::cout<<"node("<< l <<", "<< n << ")" << std::endl;
         auto world = ttg::ttg_default_execution_context();
-        printf("node(%d, %d) rank %d\n", l, n, world.rank());
+        //printf("node(%lld, %lld) rank %d\n", l, n, world.rank());
 
-        for (int j = 0; j < par_state_array.size(); j++)
-          par_state_char[j] = par_state_array[j];  // task receives at std::array. convert it to char*
+        
+        std::vector<Key> keylist;
+        keylist.reserve(nonLeafBF);
 
-        rng_spawn(par_state_char, my_state_char, s);
-
+        for (int i = 0; i < computeGranularity; i++) //just for granularuty purpose
+          rng_spawn(reinterpret_cast< unsigned char *>(par_state_array.data()),
+            my_state_char, s);
+          //rng_spawn(par_state_char, my_state_char, s);
 
         for (int j = 0; j < my_state_array.size(); j++)  // convert char* my_state_char to std::array
           my_state_array[j] = my_state_char[j];
 
         int numChildren = uts_numChildren_bin(my_state_char);
 
-        if (numChildren > 0) {
+        if (numChildren > 0) 
         {
           next_l = l + 1;
           for (int i = 0; i < numChildren; i++) 
           {
-            for (int i = 0; i < computeGranularity - 1; i++) //just for granularuty porpose
-              rng_spawn(par_state_char, my_state_char, s);
-
             next_n = (nonLeafBF * n) + i;
-            ttg::send<0>(Key{next_l, next_n, i}, my_state_array, out);
+            keylist.push_back(Key{next_l, next_n, i, world.rank()});
           }
         }
-        }
-      };
+
+        for(auto it: keylist)
+          ttg::send<0>(it, my_state_array, out);
+    };
 
   return ttg::wrap<Key>(f, ttg::edges(edge), ttg::edges(edge), "NODE", {"input_edge"}, {"output_edge"});
 }
@@ -149,10 +152,10 @@ auto root(ttg::Edge<Key, std::array<char, 20>>& edge) {
         int numChildren = (int)floor(b_0);
 
         auto world = ttg::ttg_default_execution_context();
-        printf("root on rank %d\n", world.rank());
+        //printf("root on rank %d \n", world.rank());
 
         for (int i = 0; i < numChildren; i++) 
-          ttg::send<0>(Key{1, i, i}, my_state_array, out);
+          ttg::send<0>(Key{1, i, i, world.rank()}, my_state_array, out);
       };
 
   return ttg::wrap<Key>(f, ttg::edges(), ttg::edges(edge), "ROOT", {}, {"root_edge"});
@@ -203,7 +206,9 @@ int main(int argc, char** argv) {
   auto op_root = root(edge);             
   auto op_node = make_node(edge); 
 
-  auto keymap = [=](const Key& key) { return key.l %  world.size(); }; 
+  auto keymap = [=](const Key& key) { 
+    return key.p; // map the tasks to the same node as the parent task
+  }; 
   op_node->set_keymap(keymap);
 
   auto connected = make_graph_executable(op_root.get());
