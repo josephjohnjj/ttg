@@ -98,27 +98,21 @@ auto make_node(ttg::Edge<Key, std::array<char, 20>>& edge) {
           std::tuple<ttg::Out<Key, std::array<char, 20>>>& out) {
 
         int next_l, next_n;
-        unsigned char my_state_char[20];
         std::array<char, 20> my_state_array;
-
+        std::vector<Key> keylist;
+        keylist.reserve(nonLeafBF);
         auto [l, n, s, p, h] = key; 
 
         auto world = ttg::ttg_default_execution_context();
-        //printf("node(%lld, %lld) rank %d\n", l, n, world.rank());
+        printf("node(%lld, %lld) rank %d\n", l, n, world.rank());
 
-        
-        std::vector<Key> keylist;
-        keylist.reserve(nonLeafBF);
+        RNG_state* my_state_ptr = reinterpret_cast<RNG_state*>(my_state_array.data());
+        RNG_state* par_state_ptr = reinterpret_cast<RNG_state*>(par_state_array.data());
 
         for (int i = 0; i < computeGranularity; i++) //just for granularuty purpose
-          rng_spawn(reinterpret_cast< unsigned char *>(par_state_array.data()),
-            my_state_char, s);
-          //rng_spawn(par_state_char, my_state_char, s);
+          rng_spawn(par_state_ptr, my_state_ptr, s);
 
-        for (int j = 0; j < my_state_array.size(); j++)  // convert char* my_state_char to std::array
-          my_state_array[j] = my_state_char[j];
-
-        int numChildren = uts_numChildren_bin(my_state_char);
+        int numChildren = uts_numChildren_bin(my_state_ptr);
 
         if (numChildren > 0) 
         {
@@ -141,21 +135,24 @@ auto make_node(ttg::Edge<Key, std::array<char, 20>>& edge) {
 auto root(ttg::Edge<Key, std::array<char, 20>>& edge) {
   auto f =
       [=](const Key& key, std::tuple<ttg::Out<Key, std::array<char, 20>>>& out) {
+
         unsigned char my_state_char[20];
         std::array<char, 20> my_state_array;
+        std::vector<Key> keylist;
+        keylist.reserve(b_0);
 
-        rng_init(my_state_char, rootId);  // initialise the SHA1
-
-        for (int j = 0; j < my_state_array.size(); j++) 
-          my_state_array[j] = my_state_char[j];  // edge sends at std::array
-
-        int numChildren = (int)floor(b_0);
+        rng_init(reinterpret_cast<RNG_state*>(my_state_array.data()), rootId);  // initialise the SHA1
 
         auto world = ttg::ttg_default_execution_context();
-        //printf("root on rank %d \n", world.rank());
+        printf("root on rank %d \n", world.rank());
 
+        int numChildren = (int)floor(b_0);
         for (int i = 0; i < numChildren; i++) 
-          ttg::send<0>(Key{1, i, i, world.rank()}, my_state_array, out);
+          keylist.push_back(Key{1, i, i, world.rank()});
+
+        for(auto it: keylist)
+          ttg::send<0>(it, my_state_array, out);
+
       };
 
   return ttg::wrap<Key>(f, ttg::edges(), ttg::edges(edge), "ROOT", {}, {"root_edge"});
@@ -196,9 +193,7 @@ void uts_parseParams(int argc, char *argv[]){
 int main(int argc, char** argv) {
 
   uts_parseParams(argc, argv);
-
   ttg::ttg_initialize(argc, argv, -1);
-
   auto world = ttg::ttg_default_execution_context();
 
   ttg::Edge<Key, std::array<char, 20>> edge("edge");   
@@ -216,12 +211,8 @@ int main(int argc, char** argv) {
   TTGUNUSED(connected);
   std::cout << "Graph is connected: " << connected << std::endl;
 
-  
-
   if (world.rank() == 0) 
-  {
     op_root->invoke(Key{0, 0, 0});
-  }
 
   ttg::ttg_execute(world);
   ttg::ttg_fence(world);
