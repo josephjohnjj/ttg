@@ -9,7 +9,7 @@ using namespace ttg;
 #include <parsec/data_dist/matrix/sym_two_dim_rectangle_cyclic.h>
 #include <parsec/data_dist/matrix/two_dim_rectangle_cyclic.h>
 
-//#include <mkl_cblas.h>
+#include <mkl.h>
 
 struct Key1 {
   //  (K, K)) is the diagonal tile coordiante 
@@ -131,18 +131,20 @@ template <typename T>
 auto make_potrf(DistMatrix<T>& A,
                ttg::Edge<Key1, BlockMatrix<T>>& input_gemm,    // from GEMM
                ttg::Edge<Key2, BlockMatrix<T>>& output_trsm,   // to TRSM
-               ttg::Edge<Key3, BlockMatrix<T>>& output_result) // write back
+               ttg::Edge<Key2, BlockMatrix<T>>& output_result) // write back
 {
   auto f = [=](const Key1& key,
                      BlockMatrix<T>&  tile_gemm, //from previous gemm with same coordinate
                      std::tuple<ttg::Out<Key2, BlockMatrix<T>>,
-                                ttg::Out<Key3, BlockMatrix<T>>>& out){
+                                ttg::Out<Key2, BlockMatrix<T>>>& out){
     const int K = key.K;
  
     //do the operation
 
     for(int n = K+1; n < A.rows(); n++) //syrk is replaced with gemm
       ttg::send<0>(Key2(n, K), tile_gemm, out); // to TRSMs
+    
+    ttg::send<1>(Key2(K, K), tile_gemm, out); // Write back
       
   };
   return ttg::wrap<Key1>(f, ttg::edges(input_gemm), ttg::edges(output_trsm, output_result),
@@ -156,38 +158,33 @@ auto make_trsm(DistMatrix<T>& A,
                ttg::Edge<Key2, BlockMatrix<T>>& input_gemm,    // from previous GEMM
                ttg::Edge<Key3, BlockMatrix<T>>& output_gemm_ik,   // to GEMM
                ttg::Edge<Key3, BlockMatrix<T>>& output_gemm_jk,   // to GEMM
-               ttg::Edge<Key3, BlockMatrix<T>>& output_result)
+               ttg::Edge<Key2, BlockMatrix<T>>& output_result)   // write back
 {
   auto f = [=](const Key2& key,
                      BlockMatrix<T>&  tile_potrf,
                      BlockMatrix<T>&& tile_gemm, //from previous gemm with same ccordinate as this trsm
                      std::tuple<ttg::Out<Key3, BlockMatrix<T>>,
                                 ttg::Out<Key3, BlockMatrix<T>>,
-                                ttg::Out<Key3, BlockMatrix<T>>>& out){
+                                ttg::Out<Key2, BlockMatrix<T>>>& out){
     const int I = key.I;
     const int J = key.J;
     const int K = key.J; 
 
-    //do the operation
-
-    std::vector<Key3> keylist_ik;
-    keylist_ik.reserve(I-J);
-    std::vector<Key3> keylist_jk;
-    keylist_jk.reserve(A.rows()-I);
+    
+    if(!tile_gemm.is_empty())
+    {
+      //do the operation;
+    }
 
     // send the tile to  gemms (ik of that gemm) 
     for (int n = J+1; n < I; ++n) 
-      keylist_ik.push_back(Key3(I, n, K+1));
+      ttg::send<0>(Key3(I, n, K+1), std::move(tile_gemm), out);
 
     // send the tile to all gemms (jk of that gemm)
     for (int m = I; m < A.rows(); ++m) 
-      keylist_jk.push_back(Key3(m, I, K+1)); 
+      ttg::send<1>(Key3(m, I, K+1), std::move(tile_gemm), out);
 
-    for(auto it: keylist_ik)
-      ttg::send<0>(it, std::move(tile_gemm), out);
-
-    for(auto it: keylist_jk)
-      ttg::send<1>(it, std::move(tile_gemm), out);
+    ttg::send<2>(Key2(I, J), tile_gemm, out); // Write back
 
     
   };
@@ -205,22 +202,33 @@ auto make_gemm(DistMatrix<T>& A,
                ttg::Edge<Key1, BlockMatrix<T>>& output_potrf, // to POTRF
                ttg::Edge<Key2, BlockMatrix<T>>& output_trsm, // to TRSM
                ttg::Edge<Key3, BlockMatrix<T>>& output_gemm, // to GEMM
-               ttg::Edge<Key3, BlockMatrix<T>>& output_result) // write back
+               ttg::Edge<Key2, BlockMatrix<T>>& output_result) // write back
 {
   auto f = [=](const Key3& key,
                BlockMatrix<T>& tile_ik,
-               BlockMatrix<T>& tile_kj,
+               BlockMatrix<T>& tile_jk,
                BlockMatrix<T>& tile_ij, //from previous gemm with same coordinate
                std::tuple<ttg::Out<Key1, BlockMatrix<T>>,
                           ttg::Out<Key2, BlockMatrix<T>>,
                           ttg::Out<Key3, BlockMatrix<T>>,
-                          ttg::Out<Key3, BlockMatrix<T>>>& out){
+                          ttg::Out<Key2, BlockMatrix<T>>>& out){
     
     const int I = key.I;
     const int J = key.J;
     const int K = key.K;
 
-    //do the operation 
+    int fill_flag = 0;
+
+    if(!tile_ik.is_empty() && !tile_jk.is_empty())
+    {
+      if(tile_ij.is_empty())
+      {
+        tile_ij.fill(0);
+        fill_flag = 1;
+      }
+
+        //do the operation 
+    }
 
     if(I == K+1 && J == K+1) //send tile to the POTRF in the next step
       ttg::send<0>(Key1(K+1), std::move(tile_ij), out);
@@ -228,6 +236,9 @@ auto make_gemm(DistMatrix<T>& A,
       ttg::send<1>(Key2(I, J), std::move(tile_ij), out);
     else
       ttg::send<2>(Key3(I, J, K+1), std::move(tile_ij), out); //send tile to the GEMMs in the next step
+
+      if(fill_flag == 1)
+        ttg::send<3>(Key2(K, K), tile_ij, out); // Write back the filled block
     
   };
 
@@ -238,9 +249,9 @@ auto make_gemm(DistMatrix<T>& A,
 }
 
 template <typename T>
-auto make_result(DistMatrix<T>& A, const ttg::Edge<Key3, BlockMatrix<T>>& result) 
+auto make_result(DistMatrix<T>& A, const ttg::Edge<Key2, BlockMatrix<T>>& result) 
 {
-  auto f = [=](const Key3& key, BlockMatrix<T>&& tile, std::tuple<>& out) {
+  auto f = [=](const Key2& key, BlockMatrix<T>&& tile, std::tuple<>& out) {
     const int I = key.I;
     const int J = key.J;
     //if (A(I, J).data() != tile.data()) {
@@ -289,17 +300,18 @@ int main(int argc, char **argv)
   ttg::ttg_initialize(argc, argv, nthreads);
   auto world = ttg::ttg_default_execution_context();
 
-  int P = std::sqrt(world.size());
-  int Q = (world.size() + P - 1)/P;
-  sym_two_dim_block_cyclic_t dcA;
-  sym_two_dim_block_cyclic_init(&dcA, matrix_type::matrix_RealDouble,
-                                world.size(), world.rank(), NB, NB, N, M,
-                                0, 0, N, M, P, matrix_Lower);
-  dcA.mat = parsec_data_allocate((size_t)dcA.super.nb_local_tiles *
-                                 (size_t)dcA.super.bsiz *
-                                 (size_t)parsec_datadist_getsizeoftype(dcA.super.mtype));
-  parsec_data_collection_set_key((parsec_data_collection_t*)&dcA, "Matrix A");
-  DistMatrix<double> DistMat(&dcA);
+  //int P = std::sqrt(world.size());
+  //int Q = (world.size() + P - 1)/P;
+  //sym_two_dim_block_cyclic_t dcA;
+  //sym_two_dim_block_cyclic_init(&dcA, matrix_type::matrix_RealDouble,
+  //                              world.size(), world.rank(), NB, NB, N, M,
+  //                              0, 0, N, M, P, matrix_Lower);
+  //dcA.mat = parsec_data_allocate((size_t)dcA.super.nb_local_tiles *
+  //                               (size_t)dcA.super.bsiz *
+  //                               (size_t)parsec_datadist_getsizeoftype(dcA.super.mtype));
+  //parsec_data_collection_set_key((parsec_data_collection_t*)&dcA, "Matrix A");
+
+  DistMatrix<double> DistMat(NB, NB, N, N);
 
   ttg::Edge<Key3, BlockMatrix<double>> trsm_gemm_ik("trsm_gemm_ik");
   ttg::Edge<Key3, BlockMatrix<double>> trsm_gemm_jk("trsm_gemm_jk");
@@ -307,7 +319,7 @@ int main(int argc, char **argv)
   ttg::Edge<Key1, BlockMatrix<double>> gemm_potrf("gemm_potrf"); 
   ttg::Edge<Key2, BlockMatrix<double>> gemm_trsm("gemm_trsm"); 
   ttg::Edge<Key2, BlockMatrix<double>> potrf_trsm("potrf_trsm"); 
-  ttg::Edge<Key3 , BlockMatrix<double>> result("result"); 
+  ttg::Edge<Key2 , BlockMatrix<double>> result("result"); 
 
 
 
@@ -338,7 +350,7 @@ int main(int argc, char **argv)
   op_init->set_keymap([&](const Key3&){ return world.rank(); });
 
   auto op_result = make_result(DistMat, result);
-  op_result->set_keymap(keymap3);
+  op_result->set_keymap(keymap2);
   
 
   auto connected = make_graph_executable(op_init.get());
@@ -353,8 +365,8 @@ int main(int argc, char **argv)
 
   //delete A;
   /* cleanup allocated matrix before shutting down PaRSEC */
-  parsec_data_free(dcA.mat); dcA.mat = NULL;
-  parsec_tiled_matrix_dc_destroy( (parsec_tiled_matrix_dc_t*)&dcA);
+  //parsec_data_free(dcA.mat); dcA.mat = NULL;
+  //parsec_tiled_matrix_dc_destroy( (parsec_tiled_matrix_dc_t*)&dcA);
 
 
   ttg::ttg_finalize();

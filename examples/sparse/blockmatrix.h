@@ -38,13 +38,19 @@ class BlockMatrix {
     }
   }
 
-  void fill(double val) {
-    // Initialize all elements of the matrix to 1
+  void fill(T val) {
+    // Initialize all elements of the matrix to val
     for (int i = 0; i < _rows; ++i) {
       for (int j = 0; j < _cols; ++j) {
         m_block.get()[i * _cols + j] = val;
       }
     }
+  }
+
+  
+  int is_empty()
+  {
+    return 0;
   }
 
   bool operator==(const BlockMatrix& m) const {
@@ -149,92 +155,76 @@ struct pair_hash {
   }
 };
 
-template <typename T>
-class Matrix {
- private:
-  int nb_row;  //# of blocks in a row
-  int nb_col;  //# of blocks in a col
-  int b_rows;  //# of rows in a block
-  int b_cols;  //# of cols in a block
-               // Array of BlockMatrix<T>
-  std::unordered_map<std::pair<int, int>, BlockMatrix<T>, pair_hash> m;
-
- public:
-  Matrix() = default;
-  Matrix(int nb_row, int nb_col, int b_rows, int b_cols)
-      : nb_row(nb_row), nb_col(nb_col), b_rows(b_rows), b_cols(b_cols) {
-    for (int i = 0; i < nb_row; i++)
-      for (int j = 0; j < nb_col; j++) {
-        m[std::make_pair(i, j)] = BlockMatrix<T>(b_rows, b_cols);
-      }
-  }
-
-  ~Matrix() {}
-
-  // Return total # of elements in the matrix
-  int size() const { return (nb_row * b_rows) * (nb_col * b_cols); }
-  // Return # of block rows
-  int rows() const { return nb_row; }
-  // Return # of block cols
-  int cols() const { return nb_col; }
-  std::unordered_map<std::pair<int, int>, BlockMatrix<T>, pair_hash> get() const { return m; }
-
-  void fill() {
-    for (int i = 0; i < nb_row; i++)
-      for (int j = 0; j < nb_col; j++) m[std::make_pair(i, j)].fill();
-  }
-
-  bool operator==(const Matrix& matrix) const { return (matrix.m == m); }
-
-  bool operator!=(const Matrix& matrix) const { return (matrix.m != m); }
-
-  // Return by value
-  BlockMatrix<T> operator()(int block_row, int block_col) { return m[std::make_pair(block_row, block_col)]; }
-
-  /*void operator=(int block_row, int block_col, BlockMatrix<T> val) {
-    m[std::make_pair(block_row,block_col)] = val;
-  }*/
-
-  void print() {
-    for (int i = 0; i < nb_row; i++) {
-      for (int j = 0; j < nb_col; j++) {
-        std::cout << m[std::make_pair(i, j)];
-      }
-    }
-  }
-};
 
 template <typename T>
 class DistMatrix 
 {
   private:
-    sym_two_dim_block_cyclic_t* dcA;
+    BlockMatrix<T> *dcA;
+    int block_rows, block_cols; // number of rows and columns in the global block matrix
+    int tile_rows, tile_cols; //number of rows and columns in each block
+    int rank; //rank of the proces
+    int processes; //total number
    
-  
   public:
 
-    DistMatrix(sym_two_dim_block_cyclic_t* A) : dcA(A){}
+    DistMatrix(BlockMatrix<T>* A, int n, int m, int t_n, int t_m) : dcA(A), block_rows(m), block_cols(n), tile_rows(t_m), tile_cols(t_n){}
 
-    BlockMatrix<T> operator()(int row, int col) const {
-    T* ptr = static_cast<T*>(parsec_data_copy_get_ptr(
-                      parsec_data_get_copy(dcA->super.super.data_of(&dcA->super.super, row, col), 0)));
-    
-    
-    return BlockMatrix<T>{dcA->super.mb, dcA->super.nb, ptr};
+    DistMatrix(int p, int r, int m, int n, int t_m, int t_n) 
+    {
+      block_rows = m;
+      block_cols = n;
+      tile_rows = t_m;
+      tile_cols = t_n;
+      rank = r;
+      processes = p;
+
+      int l = (block_rows * block_cols) / processes;
+      dcA = new BlockMatrix<T>(l);
+    }
+
+    DistMatrix(int m, int n, int t_m, int t_n) 
+    {
+      block_rows = m;
+      block_cols = n;
+      tile_rows = t_m;
+      tile_cols = t_n;
+      rank = ttg::ttg_default_execution_context().rank() ;
+      processes = ttg::ttg_default_execution_context().size() ;
+
+      int l = (block_rows * block_cols) / processes;
+      dcA = new BlockMatrix<T>(t_m, t_n);
+    }
+
+    BlockMatrix<T> operator()(int m, int n) const 
+    {
+      int tile_num = m * block_rows + n;
+      assert(is_local(m, n));  
+      return dcA[ tile_num / processes ];
   }
 
-  /* The rank storing the tile at {row, col} */
-  int rank_of(int row, int col) const {
-    return dcA->super.super.rank_of(&dcA->super.super, row, col);
+  /* The rank storing the tile at {m, n} */
+  int rank_of(int m, int n) const 
+  {
+    int tile_num = m * block_rows + n;
+    return tile_num % processes;
   }
 
-  bool is_local(int row, int col) const {
-    return ttg::ttg_default_execution_context().rank() == rank_of(row, col);
+  bool is_local(int m, int n) const {
+    return rank == rank_of(m, n);
   }
 
-  bool is_empty(int row, int col) const {
-    T* ptr = static_cast<T*>(parsec_data_copy_get_ptr(
-                      parsec_data_get_copy(dcA->super.super.data_of(&dcA->super.super, row, col), 0)));
+  //Set
+  int set_empty()
+  {
+
+  }
+
+  bool is_empty(int m, int n) const {
+   
+    int tile_num = m * block_rows + n;
+    assert(is_local(m, n));  
+    T* ptr = dcA(tile_num / processes );
                       
     if(ptr == NULL || ptr == nullptr)
       return 1;
@@ -243,10 +233,10 @@ class DistMatrix
   }
 
   int rows(void) const {
-    return dcA->super.mt;
+    return block_rows;
   }
 
   int cols(void) const {
-    return dcA->super.nt;
+    return block_cols;
   }
 };
