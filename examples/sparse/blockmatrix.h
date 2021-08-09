@@ -160,7 +160,7 @@ template <typename T>
 class DistMatrix 
 {
   private:
-    BlockMatrix<T> *dcA;
+    BlockMatrix<T> **dcA;
     int block_rows, block_cols; // number of rows and columns in the global block matrix
     int tile_rows, tile_cols; //number of rows and columns in each block
     int rank; //rank of the proces
@@ -180,7 +180,9 @@ class DistMatrix
       processes = p;
 
       int l = (block_rows * block_cols) / processes;
-      dcA = new BlockMatrix<T>(l);
+      dcA = new BlockMatrix<T>*[l];
+      for(int i = 0; i < l; i++)
+        dcA[i] = nullptr;
     }
 
     DistMatrix(int m, int n, int t_m, int t_n) 
@@ -193,14 +195,17 @@ class DistMatrix
       processes = ttg::ttg_default_execution_context().size() ;
 
       int l = (block_rows * block_cols) / processes;
-      dcA = new BlockMatrix<T>(t_m, t_n);
+      dcA = new BlockMatrix<T>*[l];
+      for(int i = 0; i < l; i++)
+        dcA[i] = nullptr;
     }
 
     BlockMatrix<T> operator()(int m, int n) const 
     {
       int tile_num = m * block_rows + n;
       assert(is_local(m, n));  
-      return dcA[ tile_num / processes ];
+      BlockMatrix<T> *ptr = dcA[ tile_num / processes ];
+      return *ptr;
   }
 
   /* The rank storing the tile at {m, n} */
@@ -210,18 +215,21 @@ class DistMatrix
     return tile_num % processes;
   }
 
-  bool is_local(int m, int n) const {
+  bool is_local(int m, int n) const 
+  {
     return rank == rank_of(m, n);
   }
 
-  //Set
-  int set_empty()
+  
+  int set_empty(int m, int n)
   {
-
+    int tile_num = m * block_rows + n;
+    assert(is_local(m, n));  
+    dcA[ tile_num / processes ] = nullptr;
   }
 
-  bool is_empty(int m, int n) const {
-   
+  bool is_empty(int m, int n) const 
+  {
     int tile_num = m * block_rows + n;
     assert(is_local(m, n));  
     T* ptr = dcA(tile_num / processes );

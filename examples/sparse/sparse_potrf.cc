@@ -300,17 +300,6 @@ int main(int argc, char **argv)
   ttg::ttg_initialize(argc, argv, nthreads);
   auto world = ttg::ttg_default_execution_context();
 
-  //int P = std::sqrt(world.size());
-  //int Q = (world.size() + P - 1)/P;
-  //sym_two_dim_block_cyclic_t dcA;
-  //sym_two_dim_block_cyclic_init(&dcA, matrix_type::matrix_RealDouble,
-  //                              world.size(), world.rank(), NB, NB, N, M,
-  //                              0, 0, N, M, P, matrix_Lower);
-  //dcA.mat = parsec_data_allocate((size_t)dcA.super.nb_local_tiles *
-  //                               (size_t)dcA.super.bsiz *
-  //                               (size_t)parsec_datadist_getsizeoftype(dcA.super.mtype));
-  //parsec_data_collection_set_key((parsec_data_collection_t*)&dcA, "Matrix A");
-
   DistMatrix<double> DistMat(NB, NB, N, N);
 
   ttg::Edge<Key3, BlockMatrix<double>> trsm_gemm_ik("trsm_gemm_ik");
