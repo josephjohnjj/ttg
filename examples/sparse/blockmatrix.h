@@ -28,6 +28,7 @@ class BlockMatrix {
   int cols() const { return _cols; }
   const T* get() const { return m_block.get(); }
   T* get() { return m_block.get(); }
+  T* data() const { return m_block.get();}
 
   void fill() {
     // Initialize all elements of the matrix to 1
@@ -45,11 +46,6 @@ class BlockMatrix {
         m_block.get()[i * _cols + j] = val;
       }
     }
-  }
-
-  T* data()
-  {
-    return m_block.get();
   }
 
   int is_empty()
@@ -319,7 +315,7 @@ class DistMatrix
   {
     int tile_num = m * block_rows + n;
     assert(is_local(m, n));  
-    T* ptr = dcA(tile_num / processes );
+    BlockMatrix<T> *ptr = dcA[tile_num / processes];
                       
     if(ptr == NULL || ptr == nullptr)
       return 1;
@@ -327,11 +323,23 @@ class DistMatrix
       return 0;
   }
 
-  int rows(void) const {
+  int rows(void) const 
+  {
     return block_rows;
   }
 
-  int cols(void) const {
+  int cols(void) const 
+  {
     return block_cols;
+  }
+
+  int t_rows(void) const 
+  {
+    return tile_rows;
+  }
+
+  int t_cols(void) const 
+  {
+    return tile_cols;
   }
 };

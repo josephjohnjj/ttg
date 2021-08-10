@@ -139,7 +139,9 @@ auto make_potrf(DistMatrix<T>& A,
                                 ttg::Out<Key2, BlockMatrix<T>>>& out){
     const int K = key.K;
  
-    //do the operation
+    int info = 0;
+    int wT = tile_gemm.rows();
+    //dpotrf_("Upper", &wT, tile_gemm.data(), &wT, &info);
 
     for(int n = K+1; n < A.rows(); n++) //syrk is replaced with gemm
       ttg::send<0>(Key2(n, K), tile_gemm, out); // to TRSMs
@@ -173,7 +175,10 @@ auto make_trsm(DistMatrix<T>& A,
     
     if(!tile_gemm.is_empty())
     {
-      //do the operation;
+      int info = 0;
+      int wT = tile_gemm.rows();
+      //cblas_dtrsm(CblasRowMajor, CblasRight, CblasLower, CblasTrans, 
+		  //  CblasNonUnit, wT, wT, 1.0, tile_potrf.data(), wT, tile_gemm.data(), wT);
     }
 
     // send the tile to  gemms (ik of that gemm) 
@@ -227,7 +232,10 @@ auto make_gemm(DistMatrix<T>& A,
         fill_flag = 1;
       }
 
-        //do the operation 
+        int info = 0;
+        int wT = tile_ij.rows();
+        //cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasTrans, wT, wT, wT, 
+			  //  -1.0, tile_ik.data(), wT, tile_jk.data(), wT, 1.0, tile_ij.data(), wT);
     }
 
     if(I == K+1 && J == K+1) //send tile to the POTRF in the next step
@@ -266,24 +274,45 @@ auto make_result(DistMatrix<T>& A, const ttg::Edge<Key2, BlockMatrix<T>>& result
 template<typename T>
 auto initiator(DistMatrix<T>& A,
                ttg::Edge<Key1, BlockMatrix<T>>& gemm_potrf, // to POTRF
-               ttg::Edge<Key2, BlockMatrix<T>>& gemm_trsm)  // to TRSM
+               ttg::Edge<Key2, BlockMatrix<T>>& gemm_trsm,  // to TRSM
+               ttg::Edge<Key3, BlockMatrix<T>>& gemm_gemm)  // to GEMM 
 {
   auto f = [=](const Key3& key,
                std::tuple<ttg::Out<Key1, BlockMatrix<T>>,
-                          ttg::Out<Key2, BlockMatrix<T>>>& out){
+                          ttg::Out<Key2, BlockMatrix<T>>,
+                          ttg::Out<Key3, BlockMatrix<T>>>& out){
+
+    BlockMatrix<T> sparse(A.t_rows(), A.t_cols());
+    sparse.set_empty();
+
     /* kick off first POTRF */
     if (A.is_local(0, 0)) 
-    {
       ttg::send<0>(Key1(0), std::move(A(0, 0)), out);
-    }
+  
     for (int i = 1; i < A.rows(); i++) 
     {
       /* send gemm input to TRSM */
       if (A.is_local(i, 0)) 
-        ttg::send<1>(Key2(i, 0), std::move(A(i, 0)), out);
+      {
+        if(!A.is_empty(i, 0))
+          ttg::send<1>(Key2(i, 0), std::move(A(i, 0)), out);
+        else
+          ttg::send<1>(Key2(i, 0), sparse, out);
+      }
+      
+      for (int j = 1; j <= i; j++) {
+        /* send gemm to GEMM */
+        if (A.is_local(i, j)) 
+        {
+          if(!A.is_empty(i, j))
+            ttg::send<2>(Key3(i, j, 0), std::move(A(i, j)), out);
+          else
+            ttg::send<2>(Key3(i, j, 0), sparse, out);
+        }
+      }
     }
   };
-  return ttg::wrap<Key3>(f, ttg::edges(), ttg::edges(gemm_potrf, gemm_trsm), "INITIATOR");
+  return ttg::wrap<Key3>(f, ttg::edges(), ttg::edges(gemm_potrf, gemm_trsm, gemm_gemm), "INITIATOR");
 }
 
 
@@ -336,7 +365,7 @@ int main(int argc, char **argv)
   auto op_potrf = make_potrf(DistMat, gemm_potrf, potrf_trsm, result);
   op_potrf->set_keymap(keymap1);
 
-  auto op_init  = initiator(DistMat, gemm_potrf, gemm_trsm);
+  auto op_init  = initiator(DistMat, gemm_potrf, gemm_trsm, gemm_gemm);
   op_init->set_keymap([&](const Key3&){ return world.rank(); });
 
   auto op_result = make_result(DistMat, result);
