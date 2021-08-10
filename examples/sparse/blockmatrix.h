@@ -53,6 +53,33 @@ class BlockMatrix {
     return 0;
   }
 
+  // return a diagonal bias (minimally) sufficient to make a matrix with
+  // random elements in (-1,+1) positive definite
+  static double diag_bias(int N) 
+  {
+    return (1.0 + N / 4.0); // the scaling factor 4.0 is empirically determined
+  }
+
+  void init_lower_pos_def_tile(int N, int i0, int j0, int seed) 
+  {
+    int i, j;
+    srand(i0 + j0 + 29*seed);     
+
+    for (i=0; i < _rows; i++) 
+      for (j=0; j < _cols; j++) 
+      {
+        if (i < j) //upper triangular element 
+	        m_block.get()[i * _cols + j] = 0.0;
+       else 
+       {
+	        m_block.get()[i * _cols + j] = (2.0 * rand() / RAND_MAX) - 1.0;
+	        assert (-1.0 <= m_block.get()[i * _cols + j] <= 1.0);
+	        if (i == j)
+	          m_block.get()[i * _cols + j] = fabs(m_block.get()[i * _cols + j]) + diag_bias(N);
+        }
+      } 
+  } 
+
   bool operator==(const BlockMatrix& m) const {
     bool equal = true;
     for (int i = 0; i < _rows; i++) {
@@ -162,7 +189,7 @@ class DistMatrix
   private:
     BlockMatrix<T> **dcA;
     int block_rows, block_cols; // number of rows and columns in the global block matrix
-    int tile_rows, tile_cols; //number of rows and columns in each block
+    int tile_rows, tile_cols; //number of rows and columns in each tile (block)
     int rank; //rank of the proces
     int processes; //total number
    
@@ -200,12 +227,30 @@ class DistMatrix
         dcA[i] = nullptr;
     }
 
+    void init_matrix(int perc_sparcity)
+    {
+      for(int m = 0; m < block_rows; m++ )
+        for(int n = 0; n < block_cols; n++ )
+        {
+          if(is_local(m, n))
+          {
+            if(m == n) // diogonal tiles are always dense
+            {
+              int tile_num = m * block_rows + n;
+              int local_mem_index = tile_num / processes;
+              dcA[local_mem_index] = new BlockMatrix<T>(tile_rows, tile_cols);
+              dcA[local_mem_index]->init_lower_pos_def_tile(block_rows * block_rows * tile_rows * tile_cols, m, n, 0);
+            }
+          }
+        }
+    }
+
     BlockMatrix<T> operator()(int m, int n) const 
     {
       int tile_num = m * block_rows + n;
       assert(is_local(m, n));  
       BlockMatrix<T> *ptr = dcA[ tile_num / processes ];
-      return *ptr;
+      return *ptr; 
   }
 
   /* The rank storing the tile at {m, n} */
@@ -221,7 +266,7 @@ class DistMatrix
   }
 
   
-  int set_empty(int m, int n)
+  void set_empty(int m, int n)
   {
     int tile_num = m * block_rows + n;
     assert(is_local(m, n));  
