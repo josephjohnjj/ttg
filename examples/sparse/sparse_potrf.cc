@@ -262,9 +262,11 @@ auto make_result(DistMatrix<T>& A, const ttg::Edge<Key2, BlockMatrix<T>>& result
   auto f = [=](const Key2& key, BlockMatrix<T>&& tile, std::tuple<>& out) {
     const int I = key.I;
     const int J = key.J;
-    //if (A(I, J).data() != tile.data()) {
-    //  std::copy_n(tile.data(), tile.rows()*tile.cols(), A(I, J).data());
-    //}
+    BlockMatrix<T> current_tile = A(I, J);
+    if(current_tile != tile) 
+    {
+      std::copy_n(tile.data(), tile.rows()*tile.cols(), current_tile.data());
+    }
   };
 
   return ttg::wrap(f, ttg::edges(result), ttg::edges(), "Final Output", {"result"}, {});

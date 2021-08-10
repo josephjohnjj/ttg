@@ -283,14 +283,6 @@ class DistMatrix
       dcA[local_mem_index]->fill(val);
     }
 
-    BlockMatrix<T> operator()(int m, int n) const 
-    {
-      int tile_num = m * block_rows + n;
-      assert(is_local(m, n));  
-      BlockMatrix<T> *ptr = dcA[ tile_num / processes ];
-      return *ptr; 
-  }
-
   /* The rank storing the tile at {m, n} */
   int rank_of(int m, int n) const 
   {
@@ -342,4 +334,13 @@ class DistMatrix
   {
     return tile_cols;
   }
+
+  BlockMatrix<T> operator()(int m, int n) const 
+  {
+    int tile_num = m * block_rows + n;
+    assert(is_local(m, n));  
+    BlockMatrix<T> *ptr = dcA[ tile_num / processes ];
+    return *ptr; 
+  }
+
 };
