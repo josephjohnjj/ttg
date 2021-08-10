@@ -47,6 +47,11 @@ class BlockMatrix {
     }
   }
 
+  T* data()
+  {
+    return m_block.get();
+  }
+
   int is_empty()
   {
     //sample 5 points to check for sparcity
