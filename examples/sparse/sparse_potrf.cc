@@ -272,7 +272,8 @@ auto initiator(DistMatrix<T>& A,
                std::tuple<ttg::Out<Key1, BlockMatrix<T>>,
                           ttg::Out<Key2, BlockMatrix<T>>>& out){
     /* kick off first POTRF */
-    if (A.is_local(0, 0)) {
+    if (A.is_local(0, 0)) 
+    {
       ttg::send<0>(Key1(0), std::move(A(0, 0)), out);
     }
     for (int i = 1; i < A.rows(); i++) 
@@ -339,7 +340,7 @@ int main(int argc, char **argv)
   op_init->set_keymap([&](const Key3&){ return world.rank(); });
 
   auto op_result = make_result(DistMat, result);
-  op_result->set_keymap(keymap2);
+  op_result->set_keymap(keymap2); 
   
 
   auto connected = make_graph_executable(op_init.get());

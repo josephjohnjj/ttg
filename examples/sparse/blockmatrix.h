@@ -47,10 +47,19 @@ class BlockMatrix {
     }
   }
 
-  
   int is_empty()
   {
-    return 0;
+    //sample 5 points to check for sparcity
+    if((*this)(0, 0) == -99999 && (*this)(0, _cols-1) == -99999 && (*this)(_rows-1, 0) == -99999 && 
+      (*this)(_rows-1, _cols-1) == -99999 && (*this)(_rows/2, _cols/2))
+      return 1;
+    else
+      return 0;
+  }
+
+  void set_empty()
+  {
+    this->fill(-99999);
   }
 
   // return a diagonal bias (minimally) sufficient to make a matrix with
@@ -69,13 +78,13 @@ class BlockMatrix {
       for (j=0; j < _cols; j++) 
       {
         if (i < j) //upper triangular element 
-	        m_block.get()[i * _cols + j] = 0.0;
+	        (*this)(i, j) = 0.0;
        else 
        {
-	        m_block.get()[i * _cols + j] = (2.0 * rand() / RAND_MAX) - 1.0;
+	        (*this)(i, j) = (2.0 * rand() / RAND_MAX) - 1.0;
 	        assert (-1.0 <= m_block.get()[i * _cols + j] <= 1.0);
 	        if (i == j)
-	          m_block.get()[i * _cols + j] = fabs(m_block.get()[i * _cols + j]) + diag_bias(N);
+	          (*this)(i, j) = fabs((*this)(i, j)) + diag_bias(N);
         }
       } 
   } 
@@ -241,8 +250,36 @@ class DistMatrix
               dcA[local_mem_index] = new BlockMatrix<T>(tile_rows, tile_cols);
               dcA[local_mem_index]->init_lower_pos_def_tile(block_rows * block_rows * tile_rows * tile_cols, m, n, 0);
             }
+            else if( m < n) // upper triangular tiles. Right now we dont care about this
+            {
+              // do nothing
+            }
+            else // lower triangular tiles. perc_sparcity specifies the perecentage of sparcity
+            {    // in these tile
+
+              int tile_num = m * block_rows + n;
+
+              if(tile_num % 2 == 0)
+              {
+                int local_mem_index = tile_num / processes;
+                dcA[local_mem_index] = new BlockMatrix<T>(tile_rows, tile_cols);
+                dcA[local_mem_index]->init_lower_pos_def_tile(block_rows * block_rows * tile_rows * tile_cols, m, n, 0);
+              }
+            }
+            
           }
         }
+    }
+
+    void fill(int m, int n, T val)
+    {
+      assert(is_empty(m, n));
+      assert(is_local(m, n));
+
+      int tile_num = m * block_rows + n;
+      int local_mem_index = tile_num / processes;
+      dcA[local_mem_index] = new BlockMatrix<T>(tile_rows, tile_cols);
+      dcA[local_mem_index]->fill(val);
     }
 
     BlockMatrix<T> operator()(int m, int n) const 
