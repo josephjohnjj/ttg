@@ -29,6 +29,7 @@ int nonLeafBF = 4;                 // m
 double nonLeafProb = 15.0 / 64.0;  // q
 int rootId = 0;                    // default seed for RNG state at root
 int computeGranularity = 1;        //granularity of a task
+int num_threads = -1;              // threads in a process
 
 // Interpret 32 bit positive integer as value on [0,1)
 double rng_toProb(int n) {
@@ -104,7 +105,7 @@ auto make_node(ttg::Edge<Key, std::array<char, 20>>& edge) {
         auto [l, n, s, p, h] = key; 
 
         auto world = ttg::ttg_default_execution_context();
-        printf("node(%lld, %lld) rank %d\n", l, n, world.rank());
+        //printf("node(%lld, %lld) rank %d\n", l, n, world.rank());
 
         RNG_state* my_state_ptr = reinterpret_cast<RNG_state*>(my_state_array.data());
         RNG_state* par_state_ptr = reinterpret_cast<RNG_state*>(par_state_array.data());
@@ -144,7 +145,7 @@ auto root(ttg::Edge<Key, std::array<char, 20>>& edge) {
         rng_init(reinterpret_cast<RNG_state*>(my_state_array.data()), rootId);  // initialise the SHA1
 
         auto world = ttg::ttg_default_execution_context();
-        printf("root on rank %d \n", world.rank());
+        //printf("root on rank %d \n", world.rank());
 
         int numChildren = (int)floor(b_0);
         for (int i = 0; i < numChildren; i++) 
@@ -175,6 +176,8 @@ void uts_parseParams(int argc, char *argv[]){
         b_0 = atof(argv[i+1]); break;
       case 'g':
         computeGranularity = std::max(1,atoi(argv[i+1])); break;
+      case 'c':
+        num_threads = atoi(argv[i+1]); break;
       default:
         err = i;
     }
@@ -193,7 +196,7 @@ void uts_parseParams(int argc, char *argv[]){
 int main(int argc, char** argv) {
 
   uts_parseParams(argc, argv);
-  ttg::ttg_initialize(argc, argv, -1);
+  ttg::ttg_initialize(argc, argv, num_threads);
   auto world = ttg::ttg_default_execution_context();
 
   ttg::Edge<Key, std::array<char, 20>> edge("edge");   
