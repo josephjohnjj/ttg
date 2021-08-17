@@ -24,7 +24,7 @@ extern "C" {
  *
  *  Default parameter values
  */
-double b_0 = 6.0;                  // default branching factor at the root
+double b_0 = 4.0;                  // default branching factor at the root
 int nonLeafBF = 4;                 // m
 double nonLeafProb = 15.0 / 64.0;  // q
 int rootId = 0;                    // default seed for RNG state at root
@@ -93,24 +93,19 @@ std::ostream& operator<<(std::ostream& s, const Key& key) {
 }
 
 
-auto make_node(ttg::Edge<Key, std::array<char, 20>>& edge) {
+auto make_node1(ttg::Edge<Key, std::array<char, 20>>& edge1, ttg::Edge<Key, std::array<char, 20>>& edge2) {
   auto f =
       [=](const Key& key, 
           std::array<char, 20> par_state_array, 
-          std::tuple<ttg::Out<Key, std::array<char, 20>>>& out) {
+          std::tuple<ttg::Out<Key, std::array<char, 20>>,
+                     ttg::Out<Key, std::array<char, 20>>>& out) {
 
         int next_l, next_n;
         std::array<char, 20> my_state_array;
-        std::vector<Key> keylist;
-        keylist.reserve(nonLeafBF);
+        std::vector<Key> keylist1, keylist2;
+        keylist1.reserve(nonLeafBF / 2);
+        keylist2.reserve(nonLeafBF / 2);
         auto [l, n, s, p, h] = key; 
-
-        int half = 0;
-        if( l == 1)
-          half = b_0 / 2;
-        else
-          half = nonLeafBF / 2;
-
 
         auto world = ttg::ttg_default_execution_context();
         //printf("node(%lld, %lld) rank %d\n", l, n, world.rank());
@@ -118,19 +113,13 @@ auto make_node(ttg::Edge<Key, std::array<char, 20>>& edge) {
         RNG_state* my_state_ptr = reinterpret_cast<RNG_state*>(my_state_array.data());
         RNG_state* par_state_ptr = reinterpret_cast<RNG_state*>(par_state_array.data());
 
-        int granularity = 1;
-        if( s < half)
-          granularity = computeGranularity1;
-        else
-          granularity = computeGranularity2;
-
-
-        for (int i = 0; i < granularity; i++) //just for granularuty purpose
+        for (int i = 0; i < computeGranularity1; i++) //just for granularuty purpose
           rng_spawn(par_state_ptr, my_state_ptr, s);
 
-        //printf("Node(%ld, %ld) half = %d granularity = %ld \n", l, n, half, granularity);
+        //printf("Node1(%ld, %ld)  granularity = %ld \n", l, n, computeGranularity1);
 
         int numChildren = uts_numChildren_bin(my_state_ptr);
+        int half = numChildren / 2;
 
         if (numChildren > 0) 
         {
@@ -138,26 +127,85 @@ auto make_node(ttg::Edge<Key, std::array<char, 20>>& edge) {
           for (int i = 0; i < numChildren; i++) 
           {
             next_n = (nonLeafBF * n) + i;
-            keylist.push_back(Key{next_l, next_n, i, world.rank()});
+
+            if( i < half)
+              keylist1.push_back(Key{next_l, next_n, i, world.rank()});
+            else
+              keylist2.push_back(Key{next_l, next_n, i, world.rank()});
           }
         }
 
-        for(auto it: keylist)
+        for(auto it: keylist1)
           ttg::send<0>(it, my_state_array, out);
+        for(auto it: keylist2)
+          ttg::send<1>(it, my_state_array, out);
     };
 
-  return ttg::wrap<Key>(f, ttg::edges(edge), ttg::edges(edge), "NODE", {"input_edge"}, {"output_edge"});
+  return ttg::wrap<Key>(f, ttg::edges(edge1), ttg::edges(edge1, edge2), "NODE", {"input_edge"}, {"output_edge1", "output_edge2"});
+}
+
+auto make_node2(ttg::Edge<Key, std::array<char, 20>>& edge1, ttg::Edge<Key, std::array<char, 20>>& edge2) {
+  auto f =
+      [=](const Key& key, 
+          std::array<char, 20> par_state_array, 
+          std::tuple<ttg::Out<Key, std::array<char, 20>>,
+                     ttg::Out<Key, std::array<char, 20>>>& out) {
+
+        int next_l, next_n;
+        std::array<char, 20> my_state_array;
+        std::vector<Key> keylist1, keylist2;
+        keylist1.reserve(nonLeafBF / 2);
+        keylist2.reserve(nonLeafBF / 2);
+        auto [l, n, s, p, h] = key; 
+
+        auto world = ttg::ttg_default_execution_context();
+        //printf("node(%lld, %lld) rank %d\n", l, n, world.rank());
+
+        RNG_state* my_state_ptr = reinterpret_cast<RNG_state*>(my_state_array.data());
+        RNG_state* par_state_ptr = reinterpret_cast<RNG_state*>(par_state_array.data());
+
+        for (int i = 0; i < computeGranularity2; i++) //just for granularuty purpose
+          rng_spawn(par_state_ptr, my_state_ptr, s);
+
+        //printf("Node2(%ld, %ld)  granularity = %ld \n", l, n, computeGranularity2);
+
+        int numChildren = uts_numChildren_bin(my_state_ptr);
+        int half = numChildren / 2;
+
+        if (numChildren > 0) 
+        {
+          next_l = l + 1;
+          for (int i = 0; i < numChildren; i++) 
+          {
+            next_n = (nonLeafBF * n) + i;
+
+            if( i < half)
+              keylist1.push_back(Key{next_l, next_n, i, world.rank()});
+            else
+              keylist2.push_back(Key{next_l, next_n, i, world.rank()});
+          }
+        }
+
+        for(auto it: keylist1)
+          ttg::send<0>(it, my_state_array, out);
+        for(auto it: keylist2)
+          ttg::send<1>(it, my_state_array, out);
+    };
+
+  return ttg::wrap<Key>(f, ttg::edges(edge2), ttg::edges(edge1, edge2), "NODE", {"input_edge"}, {"output_edge1", "output_edge2"});
 }
 
 
-auto root(ttg::Edge<Key, std::array<char, 20>>& edge) {
+auto make_root(ttg::Edge<Key, std::array<char, 20>>& edge1, ttg::Edge<Key, std::array<char, 20>>& edge2) {
   auto f =
-      [=](const Key& key, std::tuple<ttg::Out<Key, std::array<char, 20>>>& out) {
+      [=](const Key& key, std::tuple<ttg::Out<Key, std::array<char, 20>>,
+                                     ttg::Out<Key, std::array<char, 20>>>& out) {
 
         unsigned char my_state_char[20];
         std::array<char, 20> my_state_array;
-        std::vector<Key> keylist;
-        keylist.reserve(b_0);
+        std::vector<Key> keylist1, keylist2;
+        keylist1.reserve(b_0 / 2);
+        keylist2.reserve(b_0 / 2);
 
         rng_init(reinterpret_cast<RNG_state*>(my_state_array.data()), rootId);  // initialise the SHA1
 
@@ -165,15 +213,25 @@ auto root(ttg::Edge<Key, std::array<char, 20>>& edge) {
         //printf("root on rank %d \n", world.rank());
 
         int numChildren = (int)floor(b_0);
-        for (int i = 0; i < numChildren; i++) 
-          keylist.push_back(Key{1, i, i, world.rank()});
 
-        for(auto it: keylist)
+        int half = numChildren / 2;
+        for (int i = 0; i < numChildren; i++) 
+        {
+          if( i < half)
+            keylist1.push_back(Key{1, i, i, world.rank()});
+          else
+            keylist2.push_back(Key{1, i, i, world.rank()});
+        }
+
+        for(auto it: keylist1)
           ttg::send<0>(it, my_state_array, out);
+        
+        for(auto it: keylist2)
+          ttg::send<1>(it, my_state_array, out);
 
       };
 
-  return ttg::wrap<Key>(f, ttg::edges(), ttg::edges(edge), "ROOT", {}, {"root_edge"});
+  return ttg::wrap<Key>(f, ttg::edges(), ttg::edges(edge1, edge2), "ROOT", {}, {"root_node1", "root_node2"});
 }
 
 
@@ -218,15 +276,18 @@ int main(int argc, char** argv) {
   ttg::ttg_initialize(argc, argv, num_threads);
   auto world = ttg::ttg_default_execution_context();
 
-  ttg::Edge<Key, std::array<char, 20>> edge("edge");   
+  ttg::Edge<Key, std::array<char, 20>> edge1("edge1");   
+  ttg::Edge<Key, std::array<char, 20>> edge2("edge2");  
  
-  auto op_root = root(edge);             
-  auto op_node = make_node(edge); 
+  auto op_root = make_root(edge1, edge2);             
+  auto op_node1 = make_node1(edge1, edge2); 
+  auto op_node2 = make_node2(edge1, edge2); 
 
   auto keymap = [=](const Key& key) { 
     return key.p; // map the tasks to the same node as the parent task
   }; 
-  op_node->set_keymap(keymap);
+  op_node1->set_keymap(keymap);
+  op_node2->set_keymap(keymap);
 
   auto connected = make_graph_executable(op_root.get());
   assert(connected);
