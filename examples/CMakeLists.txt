@@ -2,7 +2,6 @@ include(AddTTGExecutable)
 
 add_ttg_executable(test test/test.cc)
 add_ttg_executable(t9 t9/t9.cc)
-add_ttg_executable(uts uts/uts.cc uts/rng/brg_sha1.c uts/rng/brg_sha1.h LINK_LIBRARIES MADworld)
 
 # sparse matmul
 if (TARGET eigen3)
@@ -38,7 +37,7 @@ if(TARGET DPLASMA::dplasma)
 #  target_link_libraries(potrf-pdc-parsec PRIVATE blaspp lapackpp DPLASMA::dplasma MADworld ttg-parsec)
 endif(TARGET DPLASMA::dplasma)
 
-add_ttg_executable(sparse_potrf sparse/potrf.cc LINK_LIBRARIES MADworld)
+
 
 
 if (OpenMP_CXX_FOUND AND TARGET std::execution)
@@ -54,3 +53,7 @@ add_ttg_executable(sw sw/sw.cc)
 if (TARGET MADworld)
   add_ttg_executable(randomaccess randomaccess/randomaccess.cc RUNTIMES "mad")
 endif (TARGET MADworld)
+
+add_ttg_executable(uts uts/uts.cc uts/rng/brg_sha1.c uts/rng/brg_sha1.h LINK_LIBRARIES MADworld)
+add_ttg_executable(uts-gran uts-granularity/uts.cc uts-granularity/rng/brg_sha1.c uts-granularity/rng/brg_sha1.h LINK_LIBRARIES MADworld)
+add_ttg_executable(sparse_potrf sparse/sparse_potrf.cc LINK_LIBRARIES MADworld)
