@@ -116,7 +116,7 @@ auto make_node1(ttg::Edge<Key, std::array<char, 20>>& edge1, ttg::Edge<Key, std:
         for (int i = 0; i < computeGranularity1; i++) //just for granularuty purpose
           rng_spawn(par_state_ptr, my_state_ptr, s);
 
-        //printf("Node1(%ld, %ld)  granularity = %ld \n", l, n, computeGranularity1);
+        printf("Node1(%ld, %ld)  granularity = %ld \n", l, n, computeGranularity1);
 
         int numChildren = uts_numChildren_bin(my_state_ptr);
         int half = numChildren / 2;
@@ -167,7 +167,7 @@ auto make_node2(ttg::Edge<Key, std::array<char, 20>>& edge1, ttg::Edge<Key, std:
         for (int i = 0; i < computeGranularity2; i++) //just for granularuty purpose
           rng_spawn(par_state_ptr, my_state_ptr, s);
 
-        //printf("Node2(%ld, %ld)  granularity = %ld \n", l, n, computeGranularity2);
+        printf("Node2(%ld, %ld)  granularity = %ld \n", l, n, computeGranularity2);
 
         int numChildren = uts_numChildren_bin(my_state_ptr);
         int half = numChildren / 2;

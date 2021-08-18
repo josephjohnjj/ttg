@@ -1,0 +1,46 @@
+{
+	"sources" : 
+	[
+		{
+			"file" : "/home/joseph/TTG/ttg/build/_deps/madness-subbuild/CMakeFiles/madness-populate"
+		},
+		{
+			"file" : "/home/joseph/TTG/ttg/build/_deps/madness-subbuild/CMakeFiles/madness-populate.rule"
+		},
+		{
+			"file" : "/home/joseph/TTG/ttg/build/_deps/madness-subbuild/CMakeFiles/madness-populate-complete.rule"
+		},
+		{
+			"file" : "/home/joseph/TTG/ttg/build/_deps/madness-subbuild/madness-populate-prefix/src/madness-populate-stamp/madness-populate-build.rule"
+		},
+		{
+			"file" : "/home/joseph/TTG/ttg/build/_deps/madness-subbuild/madness-populate-prefix/src/madness-populate-stamp/madness-populate-configure.rule"
+		},
+		{
+			"file" : "/home/joseph/TTG/ttg/build/_deps/madness-subbuild/madness-populate-prefix/src/madness-populate-stamp/madness-populate-download.rule"
+		},
+		{
+			"file" : "/home/joseph/TTG/ttg/build/_deps/madness-subbuild/madness-populate-prefix/src/madness-populate-stamp/madness-populate-install.rule"
+		},
+		{
+			"file" : "/home/joseph/TTG/ttg/build/_deps/madness-subbuild/madness-populate-prefix/src/madness-populate-stamp/madness-populate-mkdir.rule"
+		},
+		{
+			"file" : "/home/joseph/TTG/ttg/build/_deps/madness-subbuild/madness-populate-prefix/src/madness-populate-stamp/madness-populate-patch.rule"
+		},
+		{
+			"file" : "/home/joseph/TTG/ttg/build/_deps/madness-subbuild/madness-populate-prefix/src/madness-populate-stamp/madness-populate-test.rule"
+		},
+		{
+			"file" : "/home/joseph/TTG/ttg/build/_deps/madness-subbuild/madness-populate-prefix/src/madness-populate-stamp/madness-populate-update.rule"
+		}
+	],
+	"target" : 
+	{
+		"labels" : 
+		[
+			"madness-populate"
+		],
+		"name" : "madness-populate"
+	}
+}

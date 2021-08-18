@@ -1,0 +1,11 @@
+# ninja log v5
+0	41	1629301146721077307	madness-populate-prefix/src/madness-populate-stamp/madness-populate-mkdir	6ed7c57ac6515096
+41	7660	1629301154341371322	madness-populate-prefix/src/madness-populate-stamp/madness-populate-download	c9751d3441a99d92
+7660	7679	0	madness-populate-prefix/src/madness-populate-stamp/madness-populate-update	281a4419c5acbff9
+7679	7692	1629301154373372557	madness-populate-prefix/src/madness-populate-stamp/madness-populate-patch	bb9e0be2563591a7
+7692	7705	1629301154385373020	madness-populate-prefix/src/madness-populate-stamp/madness-populate-configure	cf4656713f69c55e
+7705	7717	1629301154397373483	madness-populate-prefix/src/madness-populate-stamp/madness-populate-build	75b04307e983659d
+7717	7729	1629301154409373946	madness-populate-prefix/src/madness-populate-stamp/madness-populate-install	bb8c01463f271f70
+7729	7742	1629301154425374563	madness-populate-prefix/src/madness-populate-stamp/madness-populate-test	4130de22e699ad01
+7742	7759	1629301154441375181	CMakeFiles/madness-populate-complete	17c9571cb8b51350
+7742	7759	1629301154441375181	madness-populate-prefix/src/madness-populate-stamp/madness-populate-done	17c9571cb8b51350
