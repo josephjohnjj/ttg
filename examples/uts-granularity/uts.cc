@@ -273,7 +273,7 @@ void uts_parseParams(int argc, char *argv[]){
 int main(int argc, char** argv) {
 
   uts_parseParams(argc, argv);
-  ttg::ttg_initialize(argc, argv, num_threads);
+  ttg::ttg_initialize(0, nullptr, num_threads );
   auto world = ttg::ttg_default_execution_context();
 
   ttg::Edge<Key, std::array<char, 20>> edge1("edge1");   

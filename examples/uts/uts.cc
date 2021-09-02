@@ -30,6 +30,7 @@ double nonLeafProb = 15.0 / 64.0;  // q
 int rootId = 0;                    // default seed for RNG state at root
 int computeGranularity = 1;        //granularity of a task
 int num_threads = -1;              // threads in a process
+int keymap_option = 1;
 
 // Interpret 32 bit positive integer as value on [0,1)
 double rng_toProb(int n) {
@@ -178,6 +179,8 @@ void uts_parseParams(int argc, char *argv[]){
         computeGranularity = std::max(1,atoi(argv[i+1])); break;
       case 'c':
         num_threads = atoi(argv[i+1]); break;
+      case 'k':
+        keymap_option = atoi(argv[i+1]); break;
       default:
         err = i;
     }
@@ -196,7 +199,7 @@ void uts_parseParams(int argc, char *argv[]){
 int main(int argc, char** argv) {
 
   uts_parseParams(argc, argv);
-  ttg::ttg_initialize(argc, argv, num_threads);
+  ttg::ttg_initialize(0, nullptr, num_threads );
   auto world = ttg::ttg_default_execution_context();
 
   ttg::Edge<Key, std::array<char, 20>> edge("edge");   
@@ -204,10 +207,20 @@ int main(int argc, char** argv) {
   auto op_root = root(edge);             
   auto op_node = make_node(edge); 
 
-  auto keymap = [=](const Key& key) { 
+  auto keymap1 = [=](const Key& key) { 
     return key.p; // map the tasks to the same node as the parent task
-  }; 
-  op_node->set_keymap(keymap);
+  };
+
+  auto keymap2 = [=](const Key& key) { 
+    if(key.l == 1)
+      return key.s % world.size();
+    return (key.p + key.s) % world.size(); // map the tasks to the nodes next to in round robin fashion
+  };
+
+  if(keymap_option == 1)
+    op_node->set_keymap(keymap1);
+  if(keymap_option == 2)
+    op_node->set_keymap(keymap2);
 
   auto connected = make_graph_executable(op_root.get());
   assert(connected);
