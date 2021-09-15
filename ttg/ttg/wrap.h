@@ -145,37 +145,45 @@ class WrapOpArgs : public Op<keyT, output_terminalsT, WrapOpArgs<funcT, funcG, k
   ////
 
   template <typename Key, typename Tuple, std::size_t... S>
-  void call_gran_func(Key &&key, Tuple &&args_tuple, output_terminalsT &out, std::index_sequence<S...>) {
+  int call_gran_func(Key &&key, Tuple &&args_tuple, output_terminalsT &out, std::index_sequence<S...>) {
 
-    printf("Debug: call_gran_func 150 \n");
+    
     using func_args_t = boost::callable_traits::args_t<funcG>;
-    gran_func(std::forward<Key>(key),
+    int rc = gran_func(std::forward<Key>(key),
          baseT::template get<S, std::tuple_element_t<S + 1, func_args_t>>(std::forward<Tuple>(args_tuple))..., out);
+
+    printf("Debug: call_gran_func 150 with value %d\n", rc);
+    return rc;
   }
 
   template <typename Tuple, std::size_t... S>
-  void call_gran_func(Tuple &&args_tuple, output_terminalsT &out, std::index_sequence<S...>) {
+  int call_gran_func(Tuple &&args_tuple, output_terminalsT &out, std::index_sequence<S...>) {
 
     printf("Debug: call_gran_func 160 \n");
 
     using func_args_t = boost::callable_traits::args_t<funcG>;
-    gran_func(baseT::template get<S, std::tuple_element_t<S, func_args_t>>(std::forward<Tuple>(args_tuple))..., out);
+    int rc = gran_func(baseT::template get<S, std::tuple_element_t<S, func_args_t>>(std::forward<Tuple>(args_tuple))..., out);
+
+    return rc;
   }
 
   template <typename Key>
-  void call_gran_func(Key &&key, output_terminalsT &out) {
+  int  call_gran_func(Key &&key, output_terminalsT &out) {
 
     printf("Debug: call_gran_func 169 \n");
 
-    gran_func(std::forward<Key>(key), out);
+    int rc = gran_func(std::forward<Key>(key), out);
+
+    return rc;
   }
 
   template <typename OutputTerminals>
-  void call_gran_func(OutputTerminals & out) {
+  int call_gran_func(OutputTerminals & out) {
 
     printf("Debug: call_gran_func 177 \n");
 
-    gran_func(out);
+    int rc = gran_func(out);
+    return rc;
   }
 
 
@@ -259,45 +267,49 @@ class WrapOpArgs : public Op<keyT, output_terminalsT, WrapOpArgs<funcT, funcG, k
   template<typename Key, typename ArgsTuple>
   std::enable_if_t<std::is_same_v<ArgsTuple, input_refs_tuple_type> &&
                        !ttg::meta::is_empty_tuple_v<input_refs_tuple_type> && !ttg::meta::is_void_v<Key>,
-                   void>
+                   int>
   gran_op(Key &&key, ArgsTuple &&args_tuple, output_terminalsT &out) {
 
     printf(" Debug: gran_op_wrap 253 \n ");
   
-    call_gran_func(std::forward<Key>(key), std::forward<ArgsTuple>(args_tuple), out,
+    int rc = call_gran_func(std::forward<Key>(key), std::forward<ArgsTuple>(args_tuple), out,
               std::make_index_sequence<std::tuple_size<ArgsTuple>::value>{});
      
+     return rc;
   };
 
 
   template<typename ArgsTuple, typename Key = keyT>
   std::enable_if_t<std::is_same_v<ArgsTuple, input_refs_tuple_type> &&
                        !ttg::meta::is_empty_tuple_v<input_refs_tuple_type> && ttg::meta::is_void_v<Key>,
-                   void>
+                   int>
   gran_op(ArgsTuple &&args_tuple, output_terminalsT &out) {
 
      printf(" Debug: gran_op_wrap 267 \n ");
 
-    call_gran_func(std::forward<ArgsTuple>(args_tuple), out,
+    int rc = call_gran_func(std::forward<ArgsTuple>(args_tuple), out,
               std::make_index_sequence<std::tuple_size<ArgsTuple>::value>{});
+    return rc;
   };
 
   template <typename Key, typename ArgsTuple = input_refs_tuple_type>
-  std::enable_if_t<ttg::meta::is_empty_tuple_v<ArgsTuple> && !ttg::meta::is_void_v<Key>, void> gran_op(
+  std::enable_if_t<ttg::meta::is_empty_tuple_v<ArgsTuple> && !ttg::meta::is_void_v<Key>, int> gran_op(
       Key &&key, output_terminalsT &out) {
 
          printf(" Debug: gran_op_wrap 277 \n ");
 
-    call_gran_func(std::forward<Key>(key), out);
+    int rc = call_gran_func(std::forward<Key>(key), out);
+    return rc;
   };
 
   template <typename Key = keyT, typename ArgsTuple = input_refs_tuple_type>
-  std::enable_if_t<ttg::meta::is_empty_tuple_v<ArgsTuple> && ttg::meta::is_void_v<Key>, void> gran_op(
+  std::enable_if_t<ttg::meta::is_empty_tuple_v<ArgsTuple> && ttg::meta::is_void_v<Key>, int> gran_op(
       output_terminalsT &out) {
 
          printf(" Debug: gran_op_wrap 286 \n ");
 
-    call_gran_func(out);
+    int rc = call_gran_func(out);
+    return rc;
   };
 
   

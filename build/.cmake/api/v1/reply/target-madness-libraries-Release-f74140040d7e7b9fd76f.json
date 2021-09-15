@@ -1,0 +1,61 @@
+{
+	"backtrace" : 1,
+	"backtraceGraph" : 
+	{
+		"commands" : 
+		[
+			"add_custom_target",
+			"add_dependencies",
+			"add_mad_library"
+		],
+		"files" : 
+		[
+			"build/_deps/madness-src/CMakeLists.txt",
+			"build/_deps/madness-src/cmake/modules/AddMADLibrary.cmake",
+			"build/_deps/madness-src/src/madness/world/CMakeLists.txt"
+		],
+		"nodes" : 
+		[
+			{
+				"file" : 0
+			},
+			{
+				"command" : 0,
+				"file" : 0,
+				"line" : 618,
+				"parent" : 0
+			},
+			{
+				"file" : 2
+			},
+			{
+				"command" : 2,
+				"file" : 2,
+				"line" : 24,
+				"parent" : 2
+			},
+			{
+				"command" : 1,
+				"file" : 1,
+				"line" : 12,
+				"parent" : 3
+			}
+		]
+	},
+	"dependencies" : 
+	[
+		{
+			"backtrace" : 4,
+			"id" : "MADworld::@eafb8e1f01fd4ed16d19"
+		}
+	],
+	"id" : "madness-libraries::@89b83bc8051722f181bc",
+	"name" : "madness-libraries",
+	"paths" : 
+	{
+		"build" : "_deps/madness-build",
+		"source" : "build/_deps/madness-src"
+	},
+	"sources" : [],
+	"type" : "UTILITY"
+}

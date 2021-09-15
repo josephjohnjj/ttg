@@ -263,7 +263,7 @@ namespace ttg_parsec {
 
   namespace detail {
     typedef void (*parsec_static_op_t)(void *);  // static_op will be cast to this type
-    typedef void (*parsec_static_gran_op_t)(void *);  // static_op will be cast to this type
+    typedef int (*parsec_static_gran_op_t)(void *);  // static_gran_op will be cast to this type
 
     typedef struct my_op_s {
       parsec_task_t parsec_task;
@@ -297,14 +297,16 @@ namespace ttg_parsec {
       return PARSEC_HOOK_RETURN_DONE;
     }
 
-    inline parsec_hook_return_t granularity(struct parsec_execution_stream_s *es, parsec_task_t *task) {
+    inline int granularity(struct parsec_execution_stream_s *es, parsec_task_t *task) {
+      int rc = -1;
       detail::my_op_t *me = (detail::my_op_t *)task;
       if(me->gran_function_ptr[static_cast<std::size_t>(ttg::ExecutionSpace::Host)] != nullptr )
-        me->gran_function_ptr[static_cast<std::size_t>(ttg::ExecutionSpace::Host)](task);
+        rc = me->gran_function_ptr[static_cast<std::size_t>(ttg::ExecutionSpace::Host)](task);
       (void)es;
-      return PARSEC_HOOK_RETURN_DONE;
+      printf("Granularity %d \n", rc);
+      return rc;
     }
-    inline parsec_hook_return_t granularity_cuda(struct parsec_execution_stream_s *es, parsec_task_t *task) {
+    inline int granularity_cuda(struct parsec_execution_stream_s *es, parsec_task_t *task) {
       detail::my_op_t *me = (detail::my_op_t *)task;
       me->gran_function_ptr[static_cast<std::size_t>(ttg::ExecutionSpace::CUDA)](task);
       (void)es;
@@ -501,19 +503,19 @@ namespace ttg_parsec {
 
     /// dispatches a call to derivedT::gran_op if Space == Host, otherwise to derivedT::gran_op_cuda if Space == CUDA
     template <ttg::ExecutionSpace Space, typename... Args>
-    void gran_op(Args &&...args) {
-      printf("Debug: GRAN_OP 489 \n");
+    int gran_op(Args &&...args) {
+      int rc = -1;
+      
       derivedT *derived = static_cast<derivedT *>(this);
       if constexpr (Space == ttg::ExecutionSpace::Host)
-        derived->gran_op(std::forward<Args>(args)...);
+        rc = derived->gran_op(std::forward<Args>(args)...);
       else if constexpr (Space == ttg::ExecutionSpace::CUDA)
-        derived->gran_op_cuda(std::forward<Args>(args)...);
+        rc = derived->gran_op_cuda(std::forward<Args>(args)...);
       else
         abort();
 
-      derived->test_op();
-      //derived->test_again();
-      //std::cout << typeid( *derived ).name() << std::endl; 
+      printf("Debug: GRAN_OP 489 granularity %d \n", rc);
+      return rc;
     }
 
     template <std::size_t... IS>
@@ -558,7 +560,7 @@ namespace ttg_parsec {
     }
 
     template <ttg::ExecutionSpace Space>
-    static void static_gran_op(parsec_task_t *my_task) {
+    static int static_gran_op(parsec_task_t *my_task) {
       printf("Debug: static_gran_op 561 \n");
       detail::my_op_t *task = (detail::my_op_t *)my_task;
       opT *baseobj = (opT *)task->object_ptr;
@@ -572,14 +574,14 @@ namespace ttg_parsec {
 
       if constexpr (!ttg::meta::is_void_v<keyT> && !ttg::meta::is_empty_tuple_v<input_values_tuple_type>) {
         input_refs_tuple_type input = make_tuple_of_ref_from_array(task, std::make_index_sequence<numinvals>{});
-        baseobj->template gran_op<Space>(*(keyT *)task->key, std::move(input), obj->output_terminals);
+        return baseobj->template gran_op<Space>(*(keyT *)task->key, std::move(input), obj->output_terminals);
       } else if constexpr (!ttg::meta::is_void_v<keyT> && ttg::meta::is_empty_tuple_v<input_values_tuple_type>) {
         baseobj->template gran_op<Space>(*(keyT *)task->key, obj->output_terminals);
       } else if constexpr (ttg::meta::is_void_v<keyT> && !ttg::meta::is_empty_tuple_v<input_values_tuple_type>) {
         input_refs_tuple_type input = make_tuple_of_ref_from_array(task, std::make_index_sequence<numinvals>{});
-        baseobj->template gran_op<Space>(std::move(input), obj->output_terminals);
+        return baseobj->template gran_op<Space>(std::move(input), obj->output_terminals);
       } else if constexpr (ttg::meta::is_void_v<keyT> && ttg::meta::is_empty_tuple_v<input_values_tuple_type>) {
-        baseobj->template gran_op<Space>(obj->output_terminals);
+        return baseobj->template gran_op<Space>(obj->output_terminals);
       } else
         abort();
 

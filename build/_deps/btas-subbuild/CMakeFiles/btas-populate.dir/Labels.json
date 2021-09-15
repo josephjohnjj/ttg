@@ -1,0 +1,46 @@
+{
+	"sources" : 
+	[
+		{
+			"file" : "/home/joseph/TTG/ttg/build/_deps/btas-subbuild/CMakeFiles/btas-populate"
+		},
+		{
+			"file" : "/home/joseph/TTG/ttg/build/_deps/btas-subbuild/CMakeFiles/btas-populate.rule"
+		},
+		{
+			"file" : "/home/joseph/TTG/ttg/build/_deps/btas-subbuild/CMakeFiles/btas-populate-complete.rule"
+		},
+		{
+			"file" : "/home/joseph/TTG/ttg/build/_deps/btas-subbuild/btas-populate-prefix/src/btas-populate-stamp/btas-populate-build.rule"
+		},
+		{
+			"file" : "/home/joseph/TTG/ttg/build/_deps/btas-subbuild/btas-populate-prefix/src/btas-populate-stamp/btas-populate-configure.rule"
+		},
+		{
+			"file" : "/home/joseph/TTG/ttg/build/_deps/btas-subbuild/btas-populate-prefix/src/btas-populate-stamp/btas-populate-download.rule"
+		},
+		{
+			"file" : "/home/joseph/TTG/ttg/build/_deps/btas-subbuild/btas-populate-prefix/src/btas-populate-stamp/btas-populate-install.rule"
+		},
+		{
+			"file" : "/home/joseph/TTG/ttg/build/_deps/btas-subbuild/btas-populate-prefix/src/btas-populate-stamp/btas-populate-mkdir.rule"
+		},
+		{
+			"file" : "/home/joseph/TTG/ttg/build/_deps/btas-subbuild/btas-populate-prefix/src/btas-populate-stamp/btas-populate-patch.rule"
+		},
+		{
+			"file" : "/home/joseph/TTG/ttg/build/_deps/btas-subbuild/btas-populate-prefix/src/btas-populate-stamp/btas-populate-test.rule"
+		},
+		{
+			"file" : "/home/joseph/TTG/ttg/build/_deps/btas-subbuild/btas-populate-prefix/src/btas-populate-stamp/btas-populate-update.rule"
+		}
+	],
+	"target" : 
+	{
+		"labels" : 
+		[
+			"btas-populate"
+		],
+		"name" : "btas-populate"
+	}
+}

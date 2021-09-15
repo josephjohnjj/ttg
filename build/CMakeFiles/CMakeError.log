@@ -1,0 +1,248 @@
+Looking for a CUDA compiler failed with the following output:
+CMake Error at /home/joseph/.local/lib/python3.8/site-packages/cmake/data/share/cmake-3.20/Modules/CMakeDetermineCUDACompiler.cmake:174 (message):
+  Failed to find nvcc.
+
+  Compiler requires the CUDA toolkit.  Please set the CUDAToolkit_ROOT
+  variable.
+Call Stack (most recent call first):
+  CMakeLists.txt:2 (project)
+
+
+-- Configuring incomplete, errors occurred!
+See also "/home/joseph/TTG/ttg/build/_deps/blaspp-build/CMakeFiles/CheckCUDA/CMakeFiles/CMakeOutput.log".
+See also "/home/joseph/TTG/ttg/build/_deps/blaspp-build/CMakeFiles/CheckCUDA/CMakeFiles/CMakeError.log".
+
+Determining if the function mkl_dimatcopy exists failed with the following output:
+Change Dir: /home/joseph/TTG/ttg/build/CMakeFiles/CMakeTmp
+
+Run Build Command(s):/usr/bin/ninja cmTC_4c0c9 && [1/2] Building C object CMakeFiles/cmTC_4c0c9.dir/CheckFunctionExists.c.o
+[2/2] Linking C executable cmTC_4c0c9
+FAILED: cmTC_4c0c9 
+: && /usr/bin/gcc -DCHECK_FUNCTION_EXISTS=mkl_dimatcopy  CMakeFiles/cmTC_4c0c9.dir/CheckFunctionExists.c.o -o cmTC_4c0c9  -lblas  -lm  /usr/lib/gcc/x86_64-linux-gnu/9/libgomp.so  /usr/lib/x86_64-linux-gnu/libpthread.so && :
+/usr/bin/ld: CMakeFiles/cmTC_4c0c9.dir/CheckFunctionExists.c.o: in function `main':
+CheckFunctionExists.c:(.text+0x14): undefined reference to `mkl_dimatcopy'
+collect2: error: ld returned 1 exit status
+ninja: build stopped: subcommand failed.
+
+
+
+Performing C++ SOURCE FILE Test CXX_EXECUTION_NO_LINK_NEEDED failed with the following output:
+Change Dir: /home/joseph/TTG/ttg/build/CMakeFiles/CMakeTmp
+
+Run Build Command(s):/usr/bin/ninja cmTC_f46cb && [1/2] Building CXX object CMakeFiles/cmTC_f46cb.dir/src.cxx.o
+[2/2] Linking CXX executable cmTC_f46cb
+FAILED: cmTC_f46cb 
+: && /usr/bin/g++   CMakeFiles/cmTC_f46cb.dir/src.cxx.o -o cmTC_f46cb   && :
+/usr/bin/ld: CMakeFiles/cmTC_f46cb.dir/src.cxx.o: in function `tbb::interface9::internal::start_for<tbb::blocked_range<__gnu_cxx::__normal_iterator<int*, std::vector<int, std::allocator<int> > > >, __pstl::__par_backend::__parallel_for_body<__gnu_cxx::__normal_iterator<int*, std::vector<int, std::allocator<int> > >, __pstl::__internal::__pattern_walk1<__pstl::execution::v1::parallel_unsequenced_policy const&, __gnu_cxx::__normal_iterator<int*, std::vector<int, std::allocator<int> > >, main::{lambda(auto:1&&)#1}, std::integral_constant<bool, true> >(__pstl::execution::v1::parallel_unsequenced_policy const&, __gnu_cxx::__normal_iterator<int*, std::vector<int, std::allocator<int> > >, std::integral_constant<bool, true>, main::{lambda(auto:1&&)#1}, std::integral_constant<bool, true>, std::integral_constant)::{lambda()#1}::operator()() const::{lambda(__gnu_cxx::__normal_iterator<int*, std::vector<int, std::allocator<int> > >, __gnu_cxx::__normal_iterator<int*, std::vector<int, std::allocator<int> > >)#1}>, tbb::auto_partitioner const>::run(tbb::blocked_range<__gnu_cxx::__normal_iterator<int*, std::vector<int, std::allocator<int> > > > const&, {lambda()#1} const&, __pstl::__internal::__pattern_walk1<__pstl::execution::v1::parallel_unsequenced_policy const&, __gnu_cxx::__normal_iterator<int*, std::vector<int, std::allocator<int> > >, main::{lambda(auto:1&&)#1}, std::integral_constant<bool, true> >(__pstl::execution::v1::parallel_unsequenced_policy const&, __gnu_cxx::__normal_iterator<int*, std::vector<int, std::allocator<int> > >, std::integral_constant<bool, true>, main::{lambda(auto:1&&)#1}, std::integral_constant<bool, true>, std::integral_constant)::{lambda()#1}::operator()() const::{lambda(__gnu_cxx::__normal_iterator<int*, std::vector<int, std::allocator<int> > >, __gnu_cxx::__normal_iterator<int*, std::vector<int, std::allocator<int> > >)#1}&)':
+src.cxx:(.text+0x68c): undefined reference to `tbb::task_group_context::~task_group_context()'
+/usr/bin/ld: src.cxx:(.text+0x6bb): undefined reference to `tbb::task_group_context::~task_group_context()'
+/usr/bin/ld: CMakeFiles/cmTC_f46cb.dir/src.cxx.o: in function `void tbb::interface7::internal::isolate_impl<void, __pstl::__par_backend::__parallel_for<__pstl::execution::v1::parallel_unsequenced_policy const&, __gnu_cxx::__normal_iterator<int*, std::vector<int, std::allocator<int> > >, __pstl::__internal::__pattern_walk1<__pstl::execution::v1::parallel_unsequenced_policy const&, __gnu_cxx::__normal_iterator<int*, std::vector<int, std::allocator<int> > >, main::{lambda(auto:1&&)#1}, std::integral_constant<bool, true> >(__pstl::execution::v1::parallel_unsequenced_policy const&, __gnu_cxx::__normal_iterator<int*, std::vector<int, std::allocator<int> > >, std::integral_constant<bool, true>, main::{lambda(auto:1&&)#1}, std::integral_constant<bool, true>, std::integral_constant)::{lambda()#1}::operator()() const::{lambda(__gnu_cxx::__normal_iterator<int*, std::vector<int, std::allocator<int> > >, __gnu_cxx::__normal_iterator<int*, std::vector<int, std::allocator<int> > >)#1}>(__pstl::execution::v1::parallel_unsequenced_policy const&, std::integral_constant<bool, true>, std::integral_constant<bool, true>, __gnu_cxx::__normal_iterator<int*, std::vector<int, std::allocator<int> > >)::{lambda()#1} const>(std::integral_constant<bool, true>&)':
+src.cxx:(.text+0x78b): undefined reference to `tbb::interface7::internal::isolate_within_arena(tbb::interface7::internal::delegate_base&, long)'
+/usr/bin/ld: CMakeFiles/cmTC_f46cb.dir/src.cxx.o: in function `tbb::task_group_context::task_group_context(tbb::internal::string_index)':
+src.cxx:(.text._ZN3tbb18task_group_contextC2ENS_8internal12string_indexE[_ZN3tbb18task_group_contextC5ENS_8internal12string_indexE]+0x4d): undefined reference to `tbb::task_group_context::init()'
+/usr/bin/ld: CMakeFiles/cmTC_f46cb.dir/src.cxx.o: in function `tbb::task::task()':
+src.cxx:(.text._ZN3tbb4taskC2Ev[_ZN3tbb4taskC5Ev]+0x1f): undefined reference to `vtable for tbb::task'
+/usr/bin/ld: CMakeFiles/cmTC_f46cb.dir/src.cxx.o: in function `tbb::task::~task()':
+src.cxx:(.text._ZN3tbb4taskD2Ev[_ZN3tbb4taskD5Ev]+0xf): undefined reference to `vtable for tbb::task'
+/usr/bin/ld: CMakeFiles/cmTC_f46cb.dir/src.cxx.o: in function `tbb::task::is_cancelled() const':
+src.cxx:(.text._ZNK3tbb4task12is_cancelledEv[_ZNK3tbb4task12is_cancelledEv]+0x29): undefined reference to `tbb::task_group_context::is_group_execution_cancelled() const'
+/usr/bin/ld: CMakeFiles/cmTC_f46cb.dir/src.cxx.o: in function `operator new(unsigned long, tbb::internal::allocate_root_with_context_proxy const&)':
+src.cxx:(.text._ZnwmRKN3tbb8internal32allocate_root_with_context_proxyE[_ZnwmRKN3tbb8internal32allocate_root_with_context_proxyE]+0x23): undefined reference to `tbb::internal::allocate_root_with_context_proxy::allocate(unsigned long) const'
+/usr/bin/ld: CMakeFiles/cmTC_f46cb.dir/src.cxx.o: in function `operator delete(void*, tbb::internal::allocate_root_with_context_proxy const&)':
+src.cxx:(.text._ZdlPvRKN3tbb8internal32allocate_root_with_context_proxyE[_ZdlPvRKN3tbb8internal32allocate_root_with_context_proxyE]+0x23): undefined reference to `tbb::internal::allocate_root_with_context_proxy::free(tbb::task&) const'
+/usr/bin/ld: CMakeFiles/cmTC_f46cb.dir/src.cxx.o: in function `operator new(unsigned long, tbb::internal::allocate_continuation_proxy const&)':
+src.cxx:(.text._ZnwmRKN3tbb8internal27allocate_continuation_proxyE[_ZnwmRKN3tbb8internal27allocate_continuation_proxyE]+0x23): undefined reference to `tbb::internal::allocate_continuation_proxy::allocate(unsigned long) const'
+/usr/bin/ld: CMakeFiles/cmTC_f46cb.dir/src.cxx.o: in function `operator delete(void*, tbb::internal::allocate_continuation_proxy const&)':
+src.cxx:(.text._ZdlPvRKN3tbb8internal27allocate_continuation_proxyE[_ZdlPvRKN3tbb8internal27allocate_continuation_proxyE]+0x23): undefined reference to `tbb::internal::allocate_continuation_proxy::free(tbb::task&) const'
+/usr/bin/ld: CMakeFiles/cmTC_f46cb.dir/src.cxx.o: in function `tbb::interface7::task_arena::current_thread_index()':
+src.cxx:(.text._ZN3tbb10interface710task_arena20current_thread_indexEv[_ZN3tbb10interface710task_arena20current_thread_indexEv]+0x9): undefined reference to `tbb::interface7::internal::task_arena_base::internal_current_slot()'
+/usr/bin/ld: CMakeFiles/cmTC_f46cb.dir/src.cxx.o: in function `tbb::interface9::internal::allocate_sibling(tbb::task*, unsigned long)':
+src.cxx:(.text._ZN3tbb10interface98internal16allocate_siblingEPNS_4taskEm[_ZN3tbb10interface98internal16allocate_siblingEPNS_4taskEm]+0x82): undefined reference to `tbb::internal::allocate_child_proxy::allocate(unsigned long) const'
+/usr/bin/ld: CMakeFiles/cmTC_f46cb.dir/src.cxx.o: in function `tbb::interface9::internal::adaptive_mode<tbb::interface9::internal::auto_partition_type>::adaptive_mode()':
+src.cxx:(.text._ZN3tbb10interface98internal13adaptive_modeINS1_19auto_partition_typeEEC2Ev[_ZN3tbb10interface98internal13adaptive_modeINS1_19auto_partition_typeEEC5Ev]+0x11): undefined reference to `tbb::internal::get_initial_auto_partitioner_divisor()'
+/usr/bin/ld: CMakeFiles/cmTC_f46cb.dir/src.cxx.o:(.data.rel.ro._ZTVN3tbb10interface98internal9flag_taskE[_ZTVN3tbb10interface98internal9flag_taskE]+0x28): undefined reference to `tbb::task::note_affinity(unsigned short)'
+/usr/bin/ld: CMakeFiles/cmTC_f46cb.dir/src.cxx.o:(.data.rel.ro+0x28): undefined reference to `typeinfo for tbb::task'
+/usr/bin/ld: CMakeFiles/cmTC_f46cb.dir/src.cxx.o:(.data.rel.ro._ZTIN3tbb10interface98internal9flag_taskE[_ZTIN3tbb10interface98internal9flag_taskE]+0x10): undefined reference to `typeinfo for tbb::task'
+collect2: error: ld returned 1 exit status
+ninja: build stopped: subcommand failed.
+
+
+Source file was:
+  #include <algorithm>
+  #include <vector>
+  #include <execution>
+  int main(int argc, char** argv) {
+    std::vector<int> v{0,1,2};
+    std::for_each(std::execution::par_unseq, begin(v), end(v),
+                  [](auto&& i) {i *= 2;});
+    return 0;
+  }
+  
+Performing C++ SOURCE FILE Test CMAKE_HAVE_LIBC_PTHREAD failed with the following output:
+Change Dir: /home/joseph/TTG/ttg/build/CMakeFiles/CMakeTmp
+
+Run Build Command(s):/usr/bin/ninja cmTC_4a0ac && [1/2] Building CXX object CMakeFiles/cmTC_4a0ac.dir/src.cxx.o
+[2/2] Linking CXX executable cmTC_4a0ac
+FAILED: cmTC_4a0ac 
+: && /usr/bin/g++   CMakeFiles/cmTC_4a0ac.dir/src.cxx.o -o cmTC_4a0ac   && :
+/usr/bin/ld: CMakeFiles/cmTC_4a0ac.dir/src.cxx.o: in function `main':
+src.cxx:(.text+0x46): undefined reference to `pthread_create'
+/usr/bin/ld: src.cxx:(.text+0x52): undefined reference to `pthread_detach'
+/usr/bin/ld: src.cxx:(.text+0x5e): undefined reference to `pthread_cancel'
+/usr/bin/ld: src.cxx:(.text+0x6f): undefined reference to `pthread_join'
+collect2: error: ld returned 1 exit status
+ninja: build stopped: subcommand failed.
+
+
+Source file was:
+#include <pthread.h>
+
+static void* test_func(void* data)
+{
+  return data;
+}
+
+int main(void)
+{
+  pthread_t thread;
+  pthread_create(&thread, NULL, test_func, NULL);
+  pthread_detach(thread);
+  pthread_cancel(thread);
+  pthread_join(thread, NULL);
+  pthread_atfork(NULL, NULL, NULL);
+  pthread_exit(NULL);
+
+  return 0;
+}
+
+Determining if the function pthread_create exists in the pthreads failed with the following output:
+Change Dir: /home/joseph/TTG/ttg/build/CMakeFiles/CMakeTmp
+
+Run Build Command(s):/usr/bin/ninja cmTC_e1033 && [1/2] Building CXX object CMakeFiles/cmTC_e1033.dir/CheckFunctionExists.cxx.o
+[2/2] Linking CXX executable cmTC_e1033
+FAILED: cmTC_e1033 
+: && /usr/bin/g++ -DCHECK_FUNCTION_EXISTS=pthread_create  CMakeFiles/cmTC_e1033.dir/CheckFunctionExists.cxx.o -o cmTC_e1033  -lpthreads && :
+/usr/bin/ld: cannot find -lpthreads
+collect2: error: ld returned 1 exit status
+ninja: build stopped: subcommand failed.
+
+
+
+Performing C++ SOURCE FILE Test HAVE_CRAYXE failed with the following output:
+Change Dir: /home/joseph/TTG/ttg/build/CMakeFiles/CMakeTmp
+
+Run Build Command(s):/usr/bin/ninja cmTC_080c3 && [1/2] Building CXX object CMakeFiles/cmTC_080c3.dir/src.cxx.o
+FAILED: CMakeFiles/cmTC_080c3.dir/src.cxx.o 
+/usr/bin/g++ -DHAVE_CRAYXE  -std=c++17  -fPIE -std=c++17 -o CMakeFiles/cmTC_080c3.dir/src.cxx.o -c src.cxx
+src.cxx:3:6: error: #error choke me
+    3 |     #error choke me
+      |      ^~~~~
+ninja: build stopped: subcommand failed.
+
+
+Source file was:
+
+    #ifndef __CRAYXE
+    #error choke me
+    #endif
+    int main() { return 0; }
+    
+Performing C++ SOURCE FILE Test HAVE_CRAYXT failed with the following output:
+Change Dir: /home/joseph/TTG/ttg/build/CMakeFiles/CMakeTmp
+
+Run Build Command(s):/usr/bin/ninja cmTC_fd8d5 && [1/2] Building CXX object CMakeFiles/cmTC_fd8d5.dir/src.cxx.o
+FAILED: CMakeFiles/cmTC_fd8d5.dir/src.cxx.o 
+/usr/bin/g++ -DHAVE_CRAYXT  -std=c++17  -fPIE -std=c++17 -o CMakeFiles/cmTC_fd8d5.dir/src.cxx.o -c src.cxx
+src.cxx:3:6: error: #error choke me
+    3 |     #error choke me
+      |      ^~~~~
+ninja: build stopped: subcommand failed.
+
+
+Source file was:
+
+    #ifndef __CRAYXT
+    #error choke me
+    #endif
+    int main() { return 0; }
+    
+Performing C++ SOURCE FILE Test HAVE_IBMBGP failed with the following output:
+Change Dir: /home/joseph/TTG/ttg/build/CMakeFiles/CMakeTmp
+
+Run Build Command(s):/usr/bin/ninja cmTC_574bd && [1/2] Building CXX object CMakeFiles/cmTC_574bd.dir/src.cxx.o
+FAILED: CMakeFiles/cmTC_574bd.dir/src.cxx.o 
+/usr/bin/g++ -DHAVE_IBMBGP  -std=c++17  -fPIE -std=c++17 -o CMakeFiles/cmTC_574bd.dir/src.cxx.o -c src.cxx
+src.cxx:3:6: error: #error choke me
+    3 |     #error choke me
+      |      ^~~~~
+ninja: build stopped: subcommand failed.
+
+
+Source file was:
+
+    #ifndef __bgp__
+    #error choke me
+    #endif
+    int main() { return 0; }
+    
+Performing C++ SOURCE FILE Test HAVE_IBMBGQ failed with the following output:
+Change Dir: /home/joseph/TTG/ttg/build/CMakeFiles/CMakeTmp
+
+Run Build Command(s):/usr/bin/ninja cmTC_7b2bc && [1/2] Building CXX object CMakeFiles/cmTC_7b2bc.dir/src.cxx.o
+FAILED: CMakeFiles/cmTC_7b2bc.dir/src.cxx.o 
+/usr/bin/g++ -DHAVE_IBMBGQ  -std=c++17  -fPIE -std=c++17 -o CMakeFiles/cmTC_7b2bc.dir/src.cxx.o -c src.cxx
+src.cxx:3:6: error: #error choke me
+    3 |     #error choke me
+      |      ^~~~~
+ninja: build stopped: subcommand failed.
+
+
+Source file was:
+
+    #ifndef __bgq__
+    #error choke me
+    #endif
+    int main() { return 0; }
+    
+Determining if the function pow exists failed with the following output:
+Change Dir: /home/joseph/TTG/ttg/build/CMakeFiles/CMakeTmp
+
+Run Build Command(s):/usr/bin/ninja cmTC_3a3a8 && [1/2] Building C object CMakeFiles/cmTC_3a3a8.dir/CheckFunctionExists.c.o
+<command-line>: warning: conflicting types for built-in function ‘pow’; expected ‘double(double,  double)’ [-Wbuiltin-declaration-mismatch]
+/home/joseph/.local/lib/python3.8/site-packages/cmake/data/share/cmake-3.20/Modules/CheckFunctionExists.c:7:3: note: in expansion of macro ‘CHECK_FUNCTION_EXISTS’
+    7 |   CHECK_FUNCTION_EXISTS(void);
+      |   ^~~~~~~~~~~~~~~~~~~~~
+/home/joseph/.local/lib/python3.8/site-packages/cmake/data/share/cmake-3.20/Modules/CheckFunctionExists.c:1:1: note: ‘pow’ is declared in header ‘<math.h>’
+  +++ |+#include <math.h>
+    1 | #ifdef CHECK_FUNCTION_EXISTS
+[2/2] Linking C executable cmTC_3a3a8
+FAILED: cmTC_3a3a8 
+: && /usr/bin/gcc -DCHECK_FUNCTION_EXISTS=pow  CMakeFiles/cmTC_3a3a8.dir/CheckFunctionExists.c.o -o cmTC_3a3a8   && :
+/usr/bin/ld: CMakeFiles/cmTC_3a3a8.dir/CheckFunctionExists.c.o: in function `main':
+CheckFunctionExists.c:(.text+0x14): undefined reference to `pow'
+collect2: error: ld returned 1 exit status
+ninja: build stopped: subcommand failed.
+
+
+
+Performing C++ SOURCE FILE Test RESTRICT_SUPPORT failed with the following output:
+Change Dir: /home/joseph/TTG/ttg/build/CMakeFiles/CMakeTmp
+
+Run Build Command(s):/usr/bin/ninja cmTC_5195c && [1/2] Building CXX object CMakeFiles/cmTC_5195c.dir/src.cxx.o
+FAILED: CMakeFiles/cmTC_5195c.dir/src.cxx.o 
+/usr/bin/g++ -DRESTRICT_SUPPORT  -std=c++17  -fPIE -std=c++17 -o CMakeFiles/cmTC_5195c.dir/src.cxx.o -c src.cxx
+src.cxx:2:24: error: expected initializer before ‘i’
+    2 |         int*  restrict i = nullptr;
+      |                        ^
+src.cxx: In function ‘int main()’:
+src.cxx:3:23: error: ‘i’ was not declared in this scope
+    3 |         int main() { *i = 1; return 0; }
+      |                       ^
+ninja: build stopped: subcommand failed.
+
+
+Source file was:
+
+        int*  restrict i = nullptr;
+        int main() { *i = 1; return 0; }
+        

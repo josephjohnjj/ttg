@@ -1,0 +1,57 @@
+{
+	"backtrace" : 2,
+	"backtraceGraph" : 
+	{
+		"commands" : 
+		[
+			"add_custom_target",
+			"add_custom_target_subproject",
+			"add_dependencies"
+		],
+		"files" : 
+		[
+			"cmake/modules/AddCustomTargetSubproject.cmake",
+			"build/_deps/madness-src/doc/CMakeLists.txt"
+		],
+		"nodes" : 
+		[
+			{
+				"file" : 1
+			},
+			{
+				"command" : 1,
+				"file" : 1,
+				"line" : 10,
+				"parent" : 0
+			},
+			{
+				"command" : 0,
+				"file" : 0,
+				"line" : 19,
+				"parent" : 1
+			},
+			{
+				"command" : 2,
+				"file" : 1,
+				"line" : 11,
+				"parent" : 0
+			}
+		]
+	},
+	"dependencies" : 
+	[
+		{
+			"backtrace" : 3,
+			"id" : "html-madness::@0f2c0da37eb08c741df1"
+		}
+	],
+	"id" : "docs-madness::@0f2c0da37eb08c741df1",
+	"name" : "docs-madness",
+	"paths" : 
+	{
+		"build" : "_deps/madness-build/doc",
+		"source" : "build/_deps/madness-src/doc"
+	},
+	"sources" : [],
+	"type" : "UTILITY"
+}

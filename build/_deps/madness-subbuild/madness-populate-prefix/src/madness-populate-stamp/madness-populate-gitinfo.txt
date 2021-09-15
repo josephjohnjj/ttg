@@ -1,0 +1,3 @@
+repository='https://github.com/m-a-d-n-e-s-s/madness.git'
+module=''
+tag='origin'

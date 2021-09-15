@@ -1,0 +1,19 @@
+# ninja log v5
+0	43	1629301127860349733	btas-populate-prefix/src/btas-populate-stamp/btas-populate-mkdir	680b625365424fe8
+34	46	1631629744390555808	btas-populate-prefix/src/btas-populate-stamp/btas-populate-configure	11b4671c0491dfbb
+0	9	1631544833433208936	btas-populate-prefix/src/btas-populate-stamp/btas-populate-download	3da60f715ce977bc
+46	58	1631629744402556286	btas-populate-prefix/src/btas-populate-stamp/btas-populate-build	64c5778ee785e71
+70	83	1631629744430557402	btas-populate-prefix/src/btas-populate-stamp/btas-populate-test	46b1a32abb78e879
+83	99	1631629744446558040	CMakeFiles/btas-populate-complete	a3c654e42d3aab06
+0	21	0	btas-populate-prefix/src/btas-populate-stamp/btas-populate-update	fda8d5eccd73c084
+21	34	1631629744378555330	btas-populate-prefix/src/btas-populate-stamp/btas-populate-patch	90086fd62bceb3f9
+58	70	1631629744414556765	btas-populate-prefix/src/btas-populate-stamp/btas-populate-install	13b86a736377160f
+83	99	1631629744446558040	btas-populate-prefix/src/btas-populate-stamp/btas-populate-done	a3c654e42d3aab06
+0	20	0	btas-populate-prefix/src/btas-populate-stamp/btas-populate-update	fda8d5eccd73c084
+20	32	1631629978547885805	btas-populate-prefix/src/btas-populate-stamp/btas-populate-patch	90086fd62bceb3f9
+32	43	1631629978559886282	btas-populate-prefix/src/btas-populate-stamp/btas-populate-configure	11b4671c0491dfbb
+43	55	1631629978571886761	btas-populate-prefix/src/btas-populate-stamp/btas-populate-build	64c5778ee785e71
+56	68	1631629978583887239	btas-populate-prefix/src/btas-populate-stamp/btas-populate-install	13b86a736377160f
+68	79	1631629978595887716	btas-populate-prefix/src/btas-populate-stamp/btas-populate-test	46b1a32abb78e879
+80	96	1631629978611888353	CMakeFiles/btas-populate-complete	a3c654e42d3aab06
+80	96	1631629978611888353	btas-populate-prefix/src/btas-populate-stamp/btas-populate-done	a3c654e42d3aab06

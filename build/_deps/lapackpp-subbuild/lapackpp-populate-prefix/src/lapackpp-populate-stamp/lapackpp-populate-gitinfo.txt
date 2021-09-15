@@ -1,0 +1,3 @@
+repository='https://bitbucket.org/icl/lapackpp.git'
+module=''
+tag='origin'

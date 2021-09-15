@@ -1,0 +1,121 @@
+{
+	"backtrace" : 2,
+	"backtraceGraph" : 
+	{
+		"commands" : 
+		[
+			"add_custom_target",
+			"add_custom_target_subproject",
+			"add_dependencies"
+		],
+		"files" : 
+		[
+			"cmake/modules/AddCustomTargetSubproject.cmake",
+			"build/_deps/btas-src/doc/CMakeLists.txt",
+			"build/_deps/madness-src/doc/CMakeLists.txt",
+			"doc/dox/CMakeLists.txt"
+		],
+		"nodes" : 
+		[
+			{
+				"file" : 1
+			},
+			{
+				"command" : 1,
+				"file" : 1,
+				"line" : 4,
+				"parent" : 0
+			},
+			{
+				"command" : 0,
+				"file" : 0,
+				"line" : 41,
+				"parent" : 1
+			},
+			{
+				"file" : 2
+			},
+			{
+				"command" : 1,
+				"file" : 2,
+				"line" : 6,
+				"parent" : 3
+			},
+			{
+				"command" : 2,
+				"file" : 0,
+				"line" : 35,
+				"parent" : 4
+			},
+			{
+				"file" : 3
+			},
+			{
+				"command" : 1,
+				"file" : 3,
+				"line" : 7,
+				"parent" : 6
+			},
+			{
+				"command" : 2,
+				"file" : 0,
+				"line" : 35,
+				"parent" : 7
+			}
+		]
+	},
+	"dependencies" : 
+	[
+		{
+			"id" : "html-btas::@afaa11b026fa8870c403"
+		},
+		{
+			"backtrace" : 5,
+			"id" : "html-madness::@0f2c0da37eb08c741df1"
+		},
+		{
+			"backtrace" : 8,
+			"id" : "html-ttg::@b1783b02df967126a8b5"
+		}
+	],
+	"id" : "html::@afaa11b026fa8870c403",
+	"name" : "html",
+	"paths" : 
+	{
+		"build" : "_deps/btas-build/doc",
+		"source" : "build/_deps/btas-src/doc"
+	},
+	"sourceGroups" : 
+	[
+		{
+			"name" : "",
+			"sourceIndexes" : 
+			[
+				0
+			]
+		},
+		{
+			"name" : "CMake Rules",
+			"sourceIndexes" : 
+			[
+				1
+			]
+		}
+	],
+	"sources" : 
+	[
+		{
+			"backtrace" : 2,
+			"isGenerated" : true,
+			"path" : "build/_deps/btas-build/doc/CMakeFiles/html",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 0,
+			"isGenerated" : true,
+			"path" : "build/_deps/btas-build/doc/CMakeFiles/html.rule",
+			"sourceGroupIndex" : 1
+		}
+	],
+	"type" : "UTILITY"
+}

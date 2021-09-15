@@ -1,0 +1,255 @@
+{
+	"backtrace" : 3,
+	"backtraceGraph" : 
+	{
+		"commands" : 
+		[
+			"add_custom_target",
+			"add_custom_target_subproject",
+			"add_unittests",
+			"add_dependencies"
+		],
+		"files" : 
+		[
+			"cmake/modules/AddCustomTargetSubproject.cmake",
+			"build/_deps/madness-src/cmake/modules/AddUnittests.cmake",
+			"build/_deps/madness-src/src/madness/world/CMakeLists.txt"
+		],
+		"nodes" : 
+		[
+			{
+				"file" : 2
+			},
+			{
+				"command" : 2,
+				"file" : 2,
+				"line" : 104,
+				"parent" : 0
+			},
+			{
+				"command" : 1,
+				"file" : 1,
+				"line" : 4,
+				"parent" : 1
+			},
+			{
+				"command" : 0,
+				"file" : 0,
+				"line" : 19,
+				"parent" : 2
+			},
+			{
+				"command" : 3,
+				"file" : 1,
+				"line" : 22,
+				"parent" : 1
+			},
+			{
+				"command" : 3,
+				"file" : 1,
+				"line" : 22,
+				"parent" : 1
+			},
+			{
+				"command" : 3,
+				"file" : 1,
+				"line" : 22,
+				"parent" : 1
+			},
+			{
+				"command" : 3,
+				"file" : 1,
+				"line" : 22,
+				"parent" : 1
+			},
+			{
+				"command" : 3,
+				"file" : 1,
+				"line" : 22,
+				"parent" : 1
+			},
+			{
+				"command" : 3,
+				"file" : 1,
+				"line" : 22,
+				"parent" : 1
+			},
+			{
+				"command" : 3,
+				"file" : 1,
+				"line" : 22,
+				"parent" : 1
+			},
+			{
+				"command" : 3,
+				"file" : 1,
+				"line" : 22,
+				"parent" : 1
+			},
+			{
+				"command" : 3,
+				"file" : 1,
+				"line" : 22,
+				"parent" : 1
+			},
+			{
+				"command" : 3,
+				"file" : 1,
+				"line" : 22,
+				"parent" : 1
+			},
+			{
+				"command" : 3,
+				"file" : 1,
+				"line" : 22,
+				"parent" : 1
+			},
+			{
+				"command" : 3,
+				"file" : 1,
+				"line" : 22,
+				"parent" : 1
+			},
+			{
+				"command" : 3,
+				"file" : 1,
+				"line" : 22,
+				"parent" : 1
+			},
+			{
+				"command" : 3,
+				"file" : 1,
+				"line" : 22,
+				"parent" : 1
+			},
+			{
+				"command" : 3,
+				"file" : 1,
+				"line" : 22,
+				"parent" : 1
+			},
+			{
+				"command" : 3,
+				"file" : 1,
+				"line" : 22,
+				"parent" : 1
+			},
+			{
+				"command" : 3,
+				"file" : 1,
+				"line" : 22,
+				"parent" : 1
+			},
+			{
+				"command" : 3,
+				"file" : 1,
+				"line" : 22,
+				"parent" : 1
+			},
+			{
+				"command" : 3,
+				"file" : 1,
+				"line" : 22,
+				"parent" : 1
+			},
+			{
+				"command" : 3,
+				"file" : 1,
+				"line" : 22,
+				"parent" : 1
+			}
+		]
+	},
+	"dependencies" : 
+	[
+		{
+			"backtrace" : 4,
+			"id" : "test_stack::@eafb8e1f01fd4ed16d19"
+		},
+		{
+			"backtrace" : 5,
+			"id" : "test_ar::@eafb8e1f01fd4ed16d19"
+		},
+		{
+			"backtrace" : 6,
+			"id" : "test_tree::@eafb8e1f01fd4ed16d19"
+		},
+		{
+			"backtrace" : 7,
+			"id" : "test_googletest::@eafb8e1f01fd4ed16d19"
+		},
+		{
+			"backtrace" : 8,
+			"id" : "test_hello::@eafb8e1f01fd4ed16d19"
+		},
+		{
+			"backtrace" : 9,
+			"id" : "test_hashthreaded::@eafb8e1f01fd4ed16d19"
+		},
+		{
+			"backtrace" : 10,
+			"id" : "test_prof::@eafb8e1f01fd4ed16d19"
+		},
+		{
+			"backtrace" : 11,
+			"id" : "test_hashdc::@eafb8e1f01fd4ed16d19"
+		},
+		{
+			"backtrace" : 12,
+			"id" : "test_atomicint::@eafb8e1f01fd4ed16d19"
+		},
+		{
+			"backtrace" : 13,
+			"id" : "test_future::@eafb8e1f01fd4ed16d19"
+		},
+		{
+			"backtrace" : 14,
+			"id" : "test_future2::@eafb8e1f01fd4ed16d19"
+		},
+		{
+			"backtrace" : 15,
+			"id" : "test_worldprofile::@eafb8e1f01fd4ed16d19"
+		},
+		{
+			"backtrace" : 16,
+			"id" : "test_worldptr::@eafb8e1f01fd4ed16d19"
+		},
+		{
+			"backtrace" : 17,
+			"id" : "test_future3::@eafb8e1f01fd4ed16d19"
+		},
+		{
+			"backtrace" : 18,
+			"id" : "test_dc::@eafb8e1f01fd4ed16d19"
+		},
+		{
+			"backtrace" : 19,
+			"id" : "test_queue::@eafb8e1f01fd4ed16d19"
+		},
+		{
+			"backtrace" : 20,
+			"id" : "test_world::@eafb8e1f01fd4ed16d19"
+		},
+		{
+			"backtrace" : 21,
+			"id" : "test_binsorter::@eafb8e1f01fd4ed16d19"
+		},
+		{
+			"backtrace" : 22,
+			"id" : "test_vector::@eafb8e1f01fd4ed16d19"
+		},
+		{
+			"backtrace" : 23,
+			"id" : "test_worldref::@eafb8e1f01fd4ed16d19"
+		}
+	],
+	"id" : "world_unittests-madness::@eafb8e1f01fd4ed16d19",
+	"name" : "world_unittests-madness",
+	"paths" : 
+	{
+		"build" : "_deps/madness-build/src/madness/world",
+		"source" : "build/_deps/madness-src/src/madness/world"
+	},
+	"sources" : [],
+	"type" : "UTILITY"
+}

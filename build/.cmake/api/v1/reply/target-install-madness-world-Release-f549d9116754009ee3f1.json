@@ -1,0 +1,98 @@
+{
+	"backtrace" : 2,
+	"backtraceGraph" : 
+	{
+		"commands" : 
+		[
+			"add_custom_target",
+			"add_mad_library",
+			"add_dependencies"
+		],
+		"files" : 
+		[
+			"build/_deps/madness-src/cmake/modules/AddMADLibrary.cmake",
+			"build/_deps/madness-src/src/madness/world/CMakeLists.txt"
+		],
+		"nodes" : 
+		[
+			{
+				"file" : 1
+			},
+			{
+				"command" : 1,
+				"file" : 1,
+				"line" : 24,
+				"parent" : 0
+			},
+			{
+				"command" : 0,
+				"file" : 0,
+				"line" : 29,
+				"parent" : 1
+			},
+			{
+				"command" : 2,
+				"file" : 0,
+				"line" : 33,
+				"parent" : 1
+			},
+			{
+				"command" : 2,
+				"file" : 0,
+				"line" : 57,
+				"parent" : 1
+			}
+		]
+	},
+	"dependencies" : 
+	[
+		{
+			"backtrace" : 3,
+			"id" : "install-madness-common::@e4e035d405738d09c3a9"
+		},
+		{
+			"backtrace" : 4,
+			"id" : "MADworld::@eafb8e1f01fd4ed16d19"
+		}
+	],
+	"id" : "install-madness-world::@eafb8e1f01fd4ed16d19",
+	"name" : "install-madness-world",
+	"paths" : 
+	{
+		"build" : "_deps/madness-build/src/madness/world",
+		"source" : "build/_deps/madness-src/src/madness/world"
+	},
+	"sourceGroups" : 
+	[
+		{
+			"name" : "",
+			"sourceIndexes" : 
+			[
+				0
+			]
+		},
+		{
+			"name" : "CMake Rules",
+			"sourceIndexes" : 
+			[
+				1
+			]
+		}
+	],
+	"sources" : 
+	[
+		{
+			"backtrace" : 2,
+			"isGenerated" : true,
+			"path" : "build/_deps/madness-build/src/madness/world/CMakeFiles/install-madness-world",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 0,
+			"isGenerated" : true,
+			"path" : "build/_deps/madness-build/src/madness/world/CMakeFiles/install-madness-world.rule",
+			"sourceGroupIndex" : 1
+		}
+	],
+	"type" : "UTILITY"
+}
