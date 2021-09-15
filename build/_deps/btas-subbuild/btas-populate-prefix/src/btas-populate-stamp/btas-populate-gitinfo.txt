@@ -1,3 +1,0 @@
-repository='https://github.com/BTAS/btas.git'
-module=''
-tag='origin'

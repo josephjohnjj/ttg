@@ -1,7 +1,0 @@
-add_test( [==[MADNESS Serialization]==] /home/joseph/TTG/ttg/build/tests/unit/serialization [==[MADNESS Serialization]==])
-set_tests_properties( [==[MADNESS Serialization]==] PROPERTIES WORKING_DIRECTORY /home/joseph/TTG/ttg/build/tests/unit)
-add_test( [==[Boost Serialization]==] /home/joseph/TTG/ttg/build/tests/unit/serialization [==[Boost Serialization]==])
-set_tests_properties( [==[Boost Serialization]==] PROPERTIES WORKING_DIRECTORY /home/joseph/TTG/ttg/build/tests/unit)
-add_test( [==[TTG Serialization]==] /home/joseph/TTG/ttg/build/tests/unit/serialization [==[TTG Serialization]==])
-set_tests_properties( [==[TTG Serialization]==] PROPERTIES WORKING_DIRECTORY /home/joseph/TTG/ttg/build/tests/unit)
-set( serialization_TESTS [==[MADNESS Serialization]==] [==[Boost Serialization]==] [==[TTG Serialization]==])

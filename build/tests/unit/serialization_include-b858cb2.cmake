@@ -1,5 +1,0 @@
-if(EXISTS "/home/joseph/TTG/ttg/build/tests/unit/serialization_tests-b858cb2.cmake")
-  include("/home/joseph/TTG/ttg/build/tests/unit/serialization_tests-b858cb2.cmake")
-else()
-  add_test(serialization_NOT_BUILT-b858cb2 serialization_NOT_BUILT-b858cb2)
-endif()

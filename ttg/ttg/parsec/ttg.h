@@ -263,6 +263,7 @@ namespace ttg_parsec {
 
   namespace detail {
     typedef void (*parsec_static_op_t)(void *);  // static_op will be cast to this type
+    typedef void (*parsec_static_gran_op_t)(void *);  // static_op will be cast to this type
 
     typedef struct my_op_s {
       parsec_task_t parsec_task;
@@ -277,6 +278,7 @@ namespace ttg_parsec {
       //  // (0 = unbounded stream)
       parsec_hash_table_item_t op_ht_item;
       parsec_static_op_t function_template_class_ptr[ttg::runtime_traits<ttg::Runtime::PaRSEC>::num_execution_spaces];
+      parsec_static_gran_op_t gran_function_ptr[ttg::runtime_traits<ttg::Runtime::PaRSEC>::num_execution_spaces];
       void *object_ptr;
       void (*static_set_arg)(int, int);
       parsec_key_t key;
@@ -291,6 +293,20 @@ namespace ttg_parsec {
     inline parsec_hook_return_t hook_cuda(struct parsec_execution_stream_s *es, parsec_task_t *task) {
       detail::my_op_t *me = (detail::my_op_t *)task;
       me->function_template_class_ptr[static_cast<std::size_t>(ttg::ExecutionSpace::CUDA)](task);
+      (void)es;
+      return PARSEC_HOOK_RETURN_DONE;
+    }
+
+    inline parsec_hook_return_t granularity(struct parsec_execution_stream_s *es, parsec_task_t *task) {
+      detail::my_op_t *me = (detail::my_op_t *)task;
+      if(me->gran_function_ptr[static_cast<std::size_t>(ttg::ExecutionSpace::Host)] != nullptr )
+        me->gran_function_ptr[static_cast<std::size_t>(ttg::ExecutionSpace::Host)](task);
+      (void)es;
+      return PARSEC_HOOK_RETURN_DONE;
+    }
+    inline parsec_hook_return_t granularity_cuda(struct parsec_execution_stream_s *es, parsec_task_t *task) {
+      detail::my_op_t *me = (detail::my_op_t *)task;
+      me->gran_function_ptr[static_cast<std::size_t>(ttg::ExecutionSpace::CUDA)](task);
       (void)es;
       return PARSEC_HOOK_RETURN_DONE;
     }
@@ -473,6 +489,7 @@ namespace ttg_parsec {
     /// dispatches a call to derivedT::op if Space == Host, otherwise to derivedT::op_cuda if Space == CUDA
     template <ttg::ExecutionSpace Space, typename... Args>
     void op(Args &&...args) {
+      printf("Debug: OP 476 \n");
       derivedT *derived = static_cast<derivedT *>(this);
       if constexpr (Space == ttg::ExecutionSpace::Host)
         derived->op(std::forward<Args>(args)...);
@@ -480,6 +497,23 @@ namespace ttg_parsec {
         derived->op_cuda(std::forward<Args>(args)...);
       else
         abort();
+    }
+
+    /// dispatches a call to derivedT::gran_op if Space == Host, otherwise to derivedT::gran_op_cuda if Space == CUDA
+    template <ttg::ExecutionSpace Space, typename... Args>
+    void gran_op(Args &&...args) {
+      printf("Debug: GRAN_OP 489 \n");
+      derivedT *derived = static_cast<derivedT *>(this);
+      if constexpr (Space == ttg::ExecutionSpace::Host)
+        derived->gran_op(std::forward<Args>(args)...);
+      else if constexpr (Space == ttg::ExecutionSpace::CUDA)
+        derived->gran_op_cuda(std::forward<Args>(args)...);
+      else
+        abort();
+
+      derived->test_op();
+      //derived->test_again();
+      //std::cout << typeid( *derived ).name() << std::endl; 
     }
 
     template <std::size_t... IS>
@@ -491,6 +525,7 @@ namespace ttg_parsec {
 
     template <ttg::ExecutionSpace Space>
     static void static_op(parsec_task_t *my_task) {
+      printf("Debug: static_op 499 \n");
       detail::my_op_t *task = (detail::my_op_t *)my_task;
       opT *baseobj = (opT *)task->object_ptr;
       derivedT *obj = (derivedT *)task->object_ptr;
@@ -519,6 +554,40 @@ namespace ttg_parsec {
           ttg::print(obj->get_world().rank(), ":", obj->get_name(), " : ", *(keyT *)task->key, ": done executing");
         else
           ttg::print(obj->get_world().rank(), ":", obj->get_name(), " : done executing");
+      }
+    }
+
+    template <ttg::ExecutionSpace Space>
+    static void static_gran_op(parsec_task_t *my_task) {
+      printf("Debug: static_gran_op 561 \n");
+      detail::my_op_t *task = (detail::my_op_t *)my_task;
+      opT *baseobj = (opT *)task->object_ptr;
+      derivedT *obj = (derivedT *)task->object_ptr;
+      if (obj->tracing()) {
+        if constexpr (!ttg::meta::is_void_v<keyT>)
+          ttg::print(obj->get_world().rank(), ":", obj->get_name(), " : ", *(keyT *)task->key, ": calculating gran");
+        else
+          ttg::print(obj->get_world().rank(), ":", obj->get_name(), " : calculating gran");
+      }
+
+      if constexpr (!ttg::meta::is_void_v<keyT> && !ttg::meta::is_empty_tuple_v<input_values_tuple_type>) {
+        input_refs_tuple_type input = make_tuple_of_ref_from_array(task, std::make_index_sequence<numinvals>{});
+        baseobj->template gran_op<Space>(*(keyT *)task->key, std::move(input), obj->output_terminals);
+      } else if constexpr (!ttg::meta::is_void_v<keyT> && ttg::meta::is_empty_tuple_v<input_values_tuple_type>) {
+        baseobj->template gran_op<Space>(*(keyT *)task->key, obj->output_terminals);
+      } else if constexpr (ttg::meta::is_void_v<keyT> && !ttg::meta::is_empty_tuple_v<input_values_tuple_type>) {
+        input_refs_tuple_type input = make_tuple_of_ref_from_array(task, std::make_index_sequence<numinvals>{});
+        baseobj->template gran_op<Space>(std::move(input), obj->output_terminals);
+      } else if constexpr (ttg::meta::is_void_v<keyT> && ttg::meta::is_empty_tuple_v<input_values_tuple_type>) {
+        baseobj->template gran_op<Space>(obj->output_terminals);
+      } else
+        abort();
+
+      if (obj->tracing()) {
+        if constexpr (!ttg::meta::is_void_v<keyT>)
+          ttg::print(obj->get_world().rank(), ":", obj->get_name(), " : ", *(keyT *)task->key, ": done calculating");
+        else
+          ttg::print(obj->get_world().rank(), ":", obj->get_name(), " : done calculating");
       }
     }
 
@@ -775,6 +844,9 @@ namespace ttg_parsec {
         parsec_thread_mempool_t *mempool =
             &mempools.thread_mempools[mempools_index[std::pair<int, int>(es->virtual_process->vp_id, es->th_id)]];
         newtask = (detail::my_op_t *)parsec_thread_mempool_allocate(mempool);
+
+        newtask->gran_function_ptr[0] = nullptr;
+
         memset((void *)newtask, 0, sizeof(detail::my_op_t));
         newtask->parsec_task.mempool_owner = mempool;
 
@@ -789,6 +861,13 @@ namespace ttg_parsec {
         if constexpr (derived_has_cuda_op())
           newtask->function_template_class_ptr[static_cast<std::size_t>(ttg::ExecutionSpace::CUDA)] =
               reinterpret_cast<detail::parsec_static_op_t>(&Op::static_op<ttg::ExecutionSpace::CUDA>);
+
+        newtask->gran_function_ptr[static_cast<std::size_t>(ttg::ExecutionSpace::Host)] =
+            reinterpret_cast<detail::parsec_static_gran_op_t>(&Op::static_gran_op<ttg::ExecutionSpace::Host>);
+        if constexpr (derived_has_cuda_op())
+          newtask->gran_function_ptr[static_cast<std::size_t>(ttg::ExecutionSpace::CUDA)] =
+              reinterpret_cast<detail::parsec_static_gran_op_t>(&Op::static_gran_op<ttg::ExecutionSpace::CUDA>);
+
         newtask->object_ptr = static_cast<derivedT *>(this);
         if constexpr (ttg::meta::is_void_v<keyT>) {
           newtask->key = 0;
@@ -1427,9 +1506,11 @@ namespace ttg_parsec {
         ((__parsec_chore_t *)self.incarnations)[0].type = PARSEC_DEV_CUDA;
         ((__parsec_chore_t *)self.incarnations)[0].evaluate = NULL;
         ((__parsec_chore_t *)self.incarnations)[0].hook = detail::hook_cuda;
+        ((__parsec_chore_t *)self.incarnations)[0].granularity = detail::granularity_cuda;
         ((__parsec_chore_t *)self.incarnations)[1].type = PARSEC_DEV_CPU;
         ((__parsec_chore_t *)self.incarnations)[1].evaluate = NULL;
         ((__parsec_chore_t *)self.incarnations)[1].hook = detail::hook;
+        ((__parsec_chore_t *)self.incarnations)[1].granularity = detail::granularity;
         ((__parsec_chore_t *)self.incarnations)[2].type = PARSEC_DEV_NONE;
         ((__parsec_chore_t *)self.incarnations)[2].evaluate = NULL;
         ((__parsec_chore_t *)self.incarnations)[2].hook = NULL;
@@ -1438,6 +1519,7 @@ namespace ttg_parsec {
         ((__parsec_chore_t *)self.incarnations)[0].type = PARSEC_DEV_CPU;
         ((__parsec_chore_t *)self.incarnations)[0].evaluate = NULL;
         ((__parsec_chore_t *)self.incarnations)[0].hook = detail::hook;
+        ((__parsec_chore_t *)self.incarnations)[0].granularity = detail::granularity;
         ((__parsec_chore_t *)self.incarnations)[1].type = PARSEC_DEV_NONE;
         ((__parsec_chore_t *)self.incarnations)[1].evaluate = NULL;
         ((__parsec_chore_t *)self.incarnations)[1].hook = NULL;

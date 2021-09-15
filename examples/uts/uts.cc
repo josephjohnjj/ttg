@@ -4,6 +4,7 @@
 #include "ttg.h"
 using namespace ttg;
 #include <madness/world/world.h>
+#include <typeinfo>
 
 //#include "uts.h"
 
@@ -130,7 +131,15 @@ auto make_node(ttg::Edge<Key, std::array<char, 20>>& edge) {
           ttg::send<0>(it, my_state_array, out);
     };
 
-  return ttg::wrap<Key>(f, ttg::edges(edge), ttg::edges(edge), "NODE", {"input_edge"}, {"output_edge"});
+    auto fg =
+      [=](const Key& key, 
+          std::array<char, 20> par_state_array, 
+          std::tuple<ttg::Out<Key, std::array<char, 20>>>& out) {
+
+              printf("Test successfull in UTS \n");
+          };  
+
+  return ttg::wrapG<Key>(f, fg, ttg::edges(edge), ttg::edges(edge), "NODE", {"input_edge"}, {"output_edge"});
 }
 
 
@@ -157,7 +166,15 @@ auto root(ttg::Edge<Key, std::array<char, 20>>& edge) {
 
       };
 
-  return ttg::wrap<Key>(f, ttg::edges(), ttg::edges(edge), "ROOT", {}, {"root_edge"});
+      auto fg =
+      [=](const Key& key, std::tuple<ttg::Out<Key, std::array<char, 20>>>& out) {
+
+        printf("Test successfull \n");
+        return 0;
+
+      };
+
+  return ttg::wrapG<Key>(f, fg, ttg::edges(), ttg::edges(edge), "ROOT", {}, {"root_edge"});
 }
 
 
@@ -206,6 +223,8 @@ int main(int argc, char** argv) {
  
   auto op_root = root(edge);             
   auto op_node = make_node(edge); 
+
+  //std::cout << typeid( *op_node ).name() << std::endl; 
 
   auto keymap1 = [=](const Key& key) { 
     return key.p; // map the tasks to the same node as the parent task

@@ -64,6 +64,7 @@
         "ios": "cpp",
         "kai_bitvector": "cpp",
         "localebase": "cpp",
-        "iostreambase": "cpp"
+        "iostreambase": "cpp",
+        "variant": "cpp"
     }
 }
