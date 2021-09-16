@@ -303,14 +303,16 @@ namespace ttg_parsec {
       if(me->gran_function_ptr[static_cast<std::size_t>(ttg::ExecutionSpace::Host)] != nullptr )
         rc = me->gran_function_ptr[static_cast<std::size_t>(ttg::ExecutionSpace::Host)](task);
       (void)es;
-      printf("Granularity %d \n", rc);
       return rc;
     }
+
     inline int granularity_cuda(struct parsec_execution_stream_s *es, parsec_task_t *task) {
+      int rc = -1;
       detail::my_op_t *me = (detail::my_op_t *)task;
-      me->gran_function_ptr[static_cast<std::size_t>(ttg::ExecutionSpace::CUDA)](task);
+      if(me->gran_function_ptr[static_cast<std::size_t>(ttg::ExecutionSpace::CUDA)] != nullptr )
+        rc = me->gran_function_ptr[static_cast<std::size_t>(ttg::ExecutionSpace::CUDA)](task);
       (void)es;
-      return PARSEC_HOOK_RETURN_DONE;
+      return rc;
     }
 
     inline uint64_t parsec_tasks_hash_fct(parsec_key_t key, int nb_bits, void *data) {
@@ -491,7 +493,6 @@ namespace ttg_parsec {
     /// dispatches a call to derivedT::op if Space == Host, otherwise to derivedT::op_cuda if Space == CUDA
     template <ttg::ExecutionSpace Space, typename... Args>
     void op(Args &&...args) {
-      printf("Debug: OP 476 \n");
       derivedT *derived = static_cast<derivedT *>(this);
       if constexpr (Space == ttg::ExecutionSpace::Host)
         derived->op(std::forward<Args>(args)...);
@@ -514,7 +515,6 @@ namespace ttg_parsec {
       else
         abort();
 
-      printf("Debug: GRAN_OP 489 granularity %d \n", rc);
       return rc;
     }
 
@@ -527,7 +527,6 @@ namespace ttg_parsec {
 
     template <ttg::ExecutionSpace Space>
     static void static_op(parsec_task_t *my_task) {
-      printf("Debug: static_op 499 \n");
       detail::my_op_t *task = (detail::my_op_t *)my_task;
       opT *baseobj = (opT *)task->object_ptr;
       derivedT *obj = (derivedT *)task->object_ptr;
@@ -561,7 +560,6 @@ namespace ttg_parsec {
 
     template <ttg::ExecutionSpace Space>
     static int static_gran_op(parsec_task_t *my_task) {
-      printf("Debug: static_gran_op 561 \n");
       detail::my_op_t *task = (detail::my_op_t *)my_task;
       opT *baseobj = (opT *)task->object_ptr;
       derivedT *obj = (derivedT *)task->object_ptr;
@@ -1106,6 +1104,8 @@ namespace ttg_parsec {
         if constexpr (derived_has_cuda_op())
           task->function_template_class_ptr[static_cast<std::size_t>(ttg::ExecutionSpace::CUDA)] =
               reinterpret_cast<detail::parsec_static_op_t>(&Op::static_op_noarg<ttg::ExecutionSpace::CUDA>);
+              
+              
         task->object_ptr = static_cast<derivedT *>(this);
         keyT *kp = new keyT(key);
         task->key = reinterpret_cast<parsec_key_t>(kp);

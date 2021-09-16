@@ -136,8 +136,7 @@ auto make_node(ttg::Edge<Key, std::array<char, 20>>& edge) {
           std::array<char, 20> par_state_array, 
           std::tuple<ttg::Out<Key, std::array<char, 20>>>& out) -> int 
           {
-
-              printf("Test successfull in UTS \n");
+              //printf("Test successfull in UTS \n");
               return 9000;
           };  
 
@@ -171,8 +170,7 @@ auto root(ttg::Edge<Key, std::array<char, 20>>& edge) {
       auto fg =
       [=](const Key& key, std::tuple<ttg::Out<Key, std::array<char, 20>>>& out) -> int
       {
-
-        printf("Test successfull \n");
+        //printf("Test successfull in ROOT\n");
         return 1000;
 
       };
