@@ -149,7 +149,17 @@ auto make_potrf(DistMatrix<T>& A,
     ttg::send<1>(Key2(K, K), tile_gemm, out); // Write back
       
   };
-  return ttg::wrap<Key1>(f, ttg::edges(input_gemm), ttg::edges(output_trsm, output_result),
+
+  auto fg = [=](const Key1& key,
+                     BlockMatrix<T>&  tile_gemm, //from previous gemm with same coordinate
+                     std::tuple<ttg::Out<Key2, BlockMatrix<T>>,
+                                ttg::Out<Key2, BlockMatrix<T>>>& out){
+
+    int wT = tile_gemm.rows();
+    return wT * wT * wT;
+  };
+
+  return ttg::wrapG<Key1>(f, fg, ttg::edges(input_gemm), ttg::edges(output_trsm, output_result),
                    "POTRF", {"input_gemm"}, {"output_trsm", "output_result"});
 }
 
@@ -193,7 +203,25 @@ auto make_trsm(DistMatrix<T>& A,
 
     
   };
-  return ttg::wrap(f, ttg::edges(input_potrf, input_gemm), 
+
+  auto fg = [=](const Key2& key,
+                     BlockMatrix<T>&  tile_potrf,
+                     BlockMatrix<T>&& tile_gemm, //from previous gemm with same ccordinate as this trsm
+                     std::tuple<ttg::Out<Key3, BlockMatrix<T>>,
+                                ttg::Out<Key3, BlockMatrix<T>>,
+                                ttg::Out<Key2, BlockMatrix<T>>>& out){
+
+    if(!tile_gemm.is_empty())
+    {
+      int wT = tile_gemm.rows();
+      return wT * wT * wT;
+    }
+
+    return -1;
+  };
+
+
+  return ttg::wrapG(f, fg, ttg::edges(input_potrf, input_gemm), 
     ttg::edges(output_gemm_ik, output_gemm_jk, output_result),
     "TRSM", {"input_potrf", "input_gemm"}, {"output_gemm_ik", "output_gemm_jk", "output_result"});
 }
@@ -250,7 +278,25 @@ auto make_gemm(DistMatrix<T>& A,
     
   };
 
-  return ttg::wrap<Key3>(f, ttg::edges(input_trsm_ik, input_trsm_jk, input_gemm_ij), 
+  auto fg = [=](const Key3& key,
+               BlockMatrix<T>& tile_ik,
+               BlockMatrix<T>& tile_jk,
+               BlockMatrix<T>& tile_ij, //from previous gemm with same coordinate
+               std::tuple<ttg::Out<Key1, BlockMatrix<T>>,
+                          ttg::Out<Key2, BlockMatrix<T>>,
+                          ttg::Out<Key3, BlockMatrix<T>>,
+                          ttg::Out<Key2, BlockMatrix<T>>>& out){
+
+    if(!tile_ik.is_empty() && !tile_jk.is_empty())
+    {
+      int wT = tile_ij.rows();
+      return wT * wT * wT;
+    }
+       
+    return -1;
+  };
+
+  return ttg::wrapG<Key3>(f, fg, ttg::edges(input_trsm_ik, input_trsm_jk, input_gemm_ij), 
           ttg::edges(output_potrf, output_trsm, output_gemm, output_result), "GEMM",
           {"input_trsm_ik", "input_trsm_jk", "input_gemm_ij"}, 
           {"output_potrf", "output_trsm", "output_gemm","output_result"});
@@ -269,7 +315,11 @@ auto make_result(DistMatrix<T>& A, const ttg::Edge<Key2, BlockMatrix<T>>& result
     }
   };
 
-  return ttg::wrap(f, ttg::edges(result), ttg::edges(), "Final Output", {"result"}, {});
+  auto fg = [=](const Key2& key, BlockMatrix<T>&& tile, std::tuple<>& out) {
+    return -1;
+  };
+
+  return ttg::wrapG(f, fg, ttg::edges(result), ttg::edges(), "Final Output", {"result"}, {});
 
 }
 
@@ -314,7 +364,17 @@ auto initiator(DistMatrix<T>& A,
       }
     }
   };
-  return ttg::wrap<Key3>(f, ttg::edges(), ttg::edges(gemm_potrf, gemm_trsm, gemm_gemm), "INITIATOR");
+
+  auto fg = [=](const Key3& key,
+               std::tuple<ttg::Out<Key1, BlockMatrix<T>>,
+                          ttg::Out<Key2, BlockMatrix<T>>,
+                          ttg::Out<Key3, BlockMatrix<T>>>& out){
+
+    return -1;                       
+  };
+
+
+  return ttg::wrapG<Key3>(f, fg, ttg::edges(), ttg::edges(gemm_potrf, gemm_trsm, gemm_gemm), "INITIATOR");
 }
 
 
