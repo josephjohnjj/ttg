@@ -58,6 +58,7 @@ add_ttg_executable(uts uts/uts.cc uts/rng/brg_sha1.c uts/rng/brg_sha1.h RUNTIMES
 #add_ttg_executable(uts-gran uts-granularity/uts.cc uts-granularity/rng/brg_sha1.c uts-granularity/rng/brg_sha1.h LINK_LIBRARIES MADworld ttg-parsec)
 #add_ttg_executable(uts-skew-gran uts-skew-gran/uts.cc uts-skew-gran/rng/brg_sha1.c uts-skew-gran/rng/brg_sha1.h LINK_LIBRARIES MADworld ttg-parsec)
 
-#add_ttg_executable(sparse_potrf sparse/sparse_potrf.cc LINK_LIBRARIES MADworld "-lmkl;")
+add_ttg_executable(sparse_potrf sparse_potrf/sparse_potrf.cc RUNTIMES "parsec" LINK_LIBRARIES MADworld)
+#add_ttg_executable(sparse_potrf sparse/sparse_potrf.cc LINK_LIBRARIES MADworld "-mkl;")
 #whole path
 

@@ -11,6 +11,13 @@ using namespace ttg;
 
 #include <mkl.h>
 
+
+int N = 4;          // rows in the global tiled matrix
+int M = N;          // columns in the global tiled matrix
+int NB = 2;         // rows rows in each tile
+int MB = NB;        // rows columns in each tile
+int nthreads = -1;  // threads
+
 struct Key1 {
   //  (K, K)) is the diagonal tile coordiante 
   int K = 0;
@@ -138,6 +145,8 @@ auto make_potrf(DistMatrix<T>& A,
                      std::tuple<ttg::Out<Key2, BlockMatrix<T>>,
                                 ttg::Out<Key2, BlockMatrix<T>>>& out){
     const int K = key.K;
+
+    printf("timestep %d: POTRF(%d) \n", K, K);
  
     int info = 0;
     int wT = tile_gemm.rows();
@@ -182,6 +191,8 @@ auto make_trsm(DistMatrix<T>& A,
     const int J = key.J;
     const int K = key.J; 
 
+    printf("timestep %d: TRSM(%d, %d)\n", K, I, J);
+
     
     if(!tile_gemm.is_empty())
     {
@@ -192,12 +203,18 @@ auto make_trsm(DistMatrix<T>& A,
     }
 
     // send the tile to  gemms (ik of that gemm) 
-    for (int n = J+1; n < I; ++n) 
-      ttg::send<0>(Key3(I, n, K+1), std::move(tile_gemm), out);
+    for (int n = J+1; n <= I; ++n) 
+    {
+      ttg::send<0>(Key3(I, n, K), std::move(tile_gemm), out);
+      //printf("test timestep %d: GEMM(%d, %d)\n", K, I, n);
+    }
 
     // send the tile to all gemms (jk of that gemm)
     for (int m = I; m < A.rows(); ++m) 
-      ttg::send<1>(Key3(m, I, K+1), std::move(tile_gemm), out);
+    {
+      ttg::send<1>(Key3(m, I, K), std::move(tile_gemm), out);
+      //printf("test timestep %d: GEMM(%d, %d)\n", K, m, I);
+    }
 
     ttg::send<2>(Key2(I, J), tile_gemm, out); // Write back
 
@@ -249,8 +266,10 @@ auto make_gemm(DistMatrix<T>& A,
     const int I = key.I;
     const int J = key.J;
     const int K = key.K;
-
     int fill_flag = 0;
+
+    printf("timestep %d: GEMM(%d, %d)\n", K, I, J);
+
 
     if(!tile_ik.is_empty() && !tile_jk.is_empty())
     {
@@ -266,15 +285,15 @@ auto make_gemm(DistMatrix<T>& A,
 			  //  -1.0, tile_ik.data(), wT, tile_jk.data(), wT, 1.0, tile_ij.data(), wT);
     }
 
-    if(I == K+1 && J == K+1) //send tile to the POTRF in the next step
+    if(fill_flag == 1)
+        ttg::send<3>(Key2(K, K), tile_ij, out); // Write back the filled block
+
+    if(I == (K+1) && J == (K+1) ) //send tile to the POTRF in the next step
       ttg::send<0>(Key1(K+1), std::move(tile_ij), out);
-    else if(J == K+1 && I > K+1) //send tile to the TRSMs in the next step
+    else if(J == K+1 && I > K+1 ) //send tile to the TRSMs in the next step
       ttg::send<1>(Key2(I, J), std::move(tile_ij), out);
     else
       ttg::send<2>(Key3(I, J, K+1), std::move(tile_ij), out); //send tile to the GEMMs in the next step
-
-      if(fill_flag == 1)
-        ttg::send<3>(Key2(K, K), tile_ij, out); // Write back the filled block
     
   };
 
@@ -308,11 +327,15 @@ auto make_result(DistMatrix<T>& A, const ttg::Edge<Key2, BlockMatrix<T>>& result
   auto f = [=](const Key2& key, BlockMatrix<T>&& tile, std::tuple<>& out) {
     const int I = key.I;
     const int J = key.J;
-    BlockMatrix<T> current_tile = A(I, J);
-    if(current_tile != tile) 
-    {
-      std::copy_n(tile.data(), tile.rows()*tile.cols(), current_tile.data());
-    }
+
+    //if(!A.is_empty(I, J))
+    //  A.fill(I, J, 0);
+//
+    //BlockMatrix<T>& current_tile = A(I, J);
+    //if(current_tile != tile) 
+    //{
+    //  std::copy_n(tile.data(), tile.rows()*tile.cols(), current_tile.data());
+    //}
   };
 
   auto fg = [=](const Key2& key, BlockMatrix<T>&& tile, std::tuple<>& out) {
@@ -337,9 +360,16 @@ auto initiator(DistMatrix<T>& A,
     BlockMatrix<T> sparse(A.t_rows(), A.t_cols());
     sparse.set_empty();
 
+    printf("Initiate \n");
+
     /* kick off first POTRF */
     if (A.is_local(0, 0)) 
+    {
       ttg::send<0>(Key1(0), std::move(A(0, 0)), out);
+      //printf("Initiate POTRF(0, 0) \n");
+    }
+
+    
   
     for (int i = 1; i < A.rows(); i++) 
     {
@@ -350,6 +380,8 @@ auto initiator(DistMatrix<T>& A,
           ttg::send<1>(Key2(i, 0), std::move(A(i, 0)), out);
         else
           ttg::send<1>(Key2(i, 0), sparse, out);
+
+        //printf("Initiate TRSM(%d, %d) \n", i, 0);
       }
       
       for (int j = 1; j <= i; j++) {
@@ -360,6 +392,8 @@ auto initiator(DistMatrix<T>& A,
             ttg::send<2>(Key3(i, j, 0), std::move(A(i, j)), out);
           else
             ttg::send<2>(Key3(i, j, 0), sparse, out);
+
+          //printf("Initiate GEMM(%d, %d) \n", i, j);
         }
       }
     }
@@ -378,21 +412,45 @@ auto initiator(DistMatrix<T>& A,
 }
 
 
+void potrf_parseParams(int argc, char *argv[]){
+  int i = 1; 
+  int err = -1;
+  while (i < argc && err == -1) {
+    
+    switch (argv[i][1]) {
+      case 'N':
+        N = atoi(argv[i+1]); break;
+      case 'M':
+        M = atoi(argv[i+1]); break;
+      case 'n':
+        NB = atoi(argv[i+1]); break;
+      case 'm':
+        MB = atoi(argv[i+1]); break;
+      case 'c':
+        nthreads = atoi(argv[i+1]); break;
+      default:
+        err = i;
+    }
+
+    if (err != -1) break;
+
+    i += 2;
+  }
+
+  if (err != -1) {
+    printf("Unrecognized parameter or incorrect/missing value: '%s %s'\n", argv[i], (i+1 < argc) ? argv[i+1] : "[none]");
+    exit(0);
+  }
+}
 
 int main(int argc, char **argv)
 {
-  int N = 1024;
-  int M = N;
-  int NB = 128;
-  int check = 0;
-  int nthreads = -1;
-  const char* prof_filename = nullptr;
-
-
-  ttg::ttg_initialize(argc, argv, nthreads);
+  
+  ttg::ttg_initialize(0, nullptr, nthreads );
   auto world = ttg::ttg_default_execution_context();
 
-  DistMatrix<double> DistMat(NB, NB, N, N);
+  DistMatrix<double> DistMat(N, N, NB, NB);
+  DistMat.init_matrix(1);
 
   ttg::Edge<Key3, BlockMatrix<double>> trsm_gemm_ik("trsm_gemm_ik");
   ttg::Edge<Key3, BlockMatrix<double>> trsm_gemm_jk("trsm_gemm_jk");
@@ -416,6 +474,10 @@ int main(int argc, char **argv)
     return DistMat.rank_of(key.I, key.J);
   };
 
+  auto keymap4 = [&](const Key3& key) {
+    return world.rank();
+  };
+
   auto op_gemm  = make_gemm(DistMat, trsm_gemm_ik, trsm_gemm_jk, gemm_gemm,
                                  gemm_potrf, gemm_trsm, gemm_gemm, result);
   op_gemm->set_keymap(keymap3);
@@ -428,7 +490,7 @@ int main(int argc, char **argv)
   op_potrf->set_keymap(keymap1);
 
   auto op_init  = initiator(DistMat, gemm_potrf, gemm_trsm, gemm_gemm);
-  op_init->set_keymap([&](const Key3&){ return world.rank(); });
+  op_init->set_keymap(keymap4);
 
   auto op_result = make_result(DistMat, result);
   op_result->set_keymap(keymap2); 

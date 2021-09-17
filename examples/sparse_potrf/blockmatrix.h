@@ -272,7 +272,7 @@ class DistMatrix
         }
     }
 
-    void fill(int m, int n, T val)
+    void fill(int m, int n, T val) const
     {
       assert(is_empty(m, n));
       assert(is_local(m, n));
@@ -281,6 +281,26 @@ class DistMatrix
       int local_mem_index = tile_num / processes;
       dcA[local_mem_index] = new BlockMatrix<T>(tile_rows, tile_cols);
       dcA[local_mem_index]->fill(val);
+    }
+
+    void set_tile(int m, int n, BlockMatrix<T> *ptr)
+    {
+      assert(is_empty(m, n));
+      assert(is_local(m, n));
+
+      int tile_num = m * block_rows + n;
+      int local_mem_index = tile_num / processes; 
+      dcA[local_mem_index] = ptr;
+    }
+
+    void set_tile(int m, int n)
+    {
+      assert(is_empty(m, n));
+      assert(is_local(m, n));
+
+      int tile_num = m * block_rows + n;
+      int local_mem_index = tile_num / processes; 
+      dcA[local_mem_index] = new BlockMatrix<T>(tile_rows, tile_cols);
     }
 
   /* The rank storing the tile at {m, n} */
@@ -335,12 +355,16 @@ class DistMatrix
     return tile_cols;
   }
 
-  BlockMatrix<T> operator()(int m, int n) const 
+  int get_p(void) const
+  {
+    return processes;
+  }
+
+  BlockMatrix<T>& operator()(int m, int n) const 
   {
     int tile_num = m * block_rows + n;
     assert(is_local(m, n));  
     BlockMatrix<T> *ptr = dcA[ tile_num / processes ];
     return *ptr; 
   }
-
 };

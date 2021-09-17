@@ -277,7 +277,7 @@ auto initiator(Matrix<T>* A,
                           ttg::Out<Key, BlockMatrix<T>>,
                           ttg::Out<Key, BlockMatrix<T>>>& out){
     /* kick off first POTRF */
-    ttg::send<0>(Key{0, 0, 0}, (*A)(0, 0), out);
+    ttg::send<0>(Key{0, 0, 0}, (*A)(0, 0), out); 
     for (int i = 1; i < A->rows(); i++) {
       /* send gemm input to TRSM */
       ttg::send<1>(Key{i, 0, 0}, (*A)(i, 0), out);
