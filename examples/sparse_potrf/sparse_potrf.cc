@@ -203,6 +203,10 @@ auto make_trsm(DistMatrix<T>& A,
       //cblas_dtrsm(CblasRowMajor, CblasRight, CblasLower, CblasTrans, 
 		  //  CblasNonUnit, wT, wT, 1.0, tile_potrf.data(), wT, tile_gemm.data(), wT);
     }
+    else
+    {
+      printf("Sparse \n");
+    }
 
     // send the tile to  gemms (ik of that gemm) 
     for (int n = J+1; n <= I; ++n) 
@@ -287,6 +291,11 @@ auto make_gemm(DistMatrix<T>& A,
         //cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasTrans, wT, wT, wT, 
 			  //  -1.0, tile_ik.data(), wT, tile_jk.data(), wT, 1.0, tile_ij.data(), wT);
     }
+    else
+    {
+      printf("Sparse \n");
+    }
+
 
     if(fill_flag == 1)
         ttg::send<3>(Key2(K, K), tile_ij, out); // Write back the filled block
@@ -413,7 +422,7 @@ auto initiator(DistMatrix<T>& A,
 }
 
 
-void potrf_parseParams(int argc, char *argv[]){
+void potrf_parse_params(int argc, char *argv[]){
   int i = 1; 
   int err = -1;
   while (i < argc && err == -1) {
@@ -446,7 +455,8 @@ void potrf_parseParams(int argc, char *argv[]){
 
 int main(int argc, char **argv)
 {
-  
+  potrf_parse_params(argc, argv);
+
   ttg::ttg_initialize(0, nullptr, nthreads );
   auto world = ttg::ttg_default_execution_context();
 
