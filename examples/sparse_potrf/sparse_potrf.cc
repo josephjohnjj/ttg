@@ -190,6 +190,7 @@ auto make_trsm(DistMatrix<T>& A,
     const int I = key.I;
     const int J = key.J;
     const int K = key.J; 
+    int write = 0;
 
     printf("timestep %d: TRSM(%d, %d)\n", K, I, J);
 
@@ -198,6 +199,7 @@ auto make_trsm(DistMatrix<T>& A,
     {
       int info = 0;
       int wT = tile_gemm.rows();
+      write = 1;
       //cblas_dtrsm(CblasRowMajor, CblasRight, CblasLower, CblasTrans, 
 		  //  CblasNonUnit, wT, wT, 1.0, tile_potrf.data(), wT, tile_gemm.data(), wT);
     }
@@ -216,7 +218,8 @@ auto make_trsm(DistMatrix<T>& A,
       //printf("test timestep %d: GEMM(%d, %d)\n", K, m, I);
     }
 
-    ttg::send<2>(Key2(I, J), tile_gemm, out); // Write back
+    if(write == 1)
+      ttg::send<2>(Key2(I, J), tile_gemm, out); // Write back
 
     
   };
@@ -328,14 +331,12 @@ auto make_result(DistMatrix<T>& A, const ttg::Edge<Key2, BlockMatrix<T>>& result
     const int I = key.I;
     const int J = key.J;
 
-    //if(!A.is_empty(I, J))
-    //  A.fill(I, J, 0);
-//
-    //BlockMatrix<T>& current_tile = A(I, J);
-    //if(current_tile != tile) 
-    //{
-    //  std::copy_n(tile.data(), tile.rows()*tile.cols(), current_tile.data());
-    //}
+    if(A.is_empty(I, J))
+      A.fill(I, J, 0);
+    BlockMatrix<T>& current_tile = A(I, J);
+
+    if(current_tile != tile) 
+      std::copy_n(tile.data(), tile.rows() * tile.cols(), current_tile.data());
   };
 
   auto fg = [=](const Key2& key, BlockMatrix<T>&& tile, std::tuple<>& out) {
