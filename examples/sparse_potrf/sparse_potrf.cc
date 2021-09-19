@@ -207,25 +207,16 @@ auto make_trsm(DistMatrix<T>& A,
       //cblas_dtrsm(CblasRowMajor, CblasRight, CblasLower, CblasTrans, 
 		  //  CblasNonUnit, wT, wT, 1.0, tile_potrf.data(), wT, tile_gemm.data(), wT);
     }
-    else
-    {
-      printf("TRSM Sparse (%d, %d)\n", I, J);
-      //tile_gemm.print_block();
-    }
+   
 
     // send the tile to  gemms (ik of that gemm) 
     for (int n = J+1; n <= I; ++n) 
-    {
       ttg::send<0>(Key3(I, n, K), tile_gemm, out);
-      //printf("test timestep %d: GEMM(%d, %d)\n", K, I, n);
-    }
 
     // send the tile to all gemms (jk of that gemm)
     for (int m = I; m < A.rows(); ++m) 
-    {
       ttg::send<1>(Key3(m, I, K), tile_gemm, out);
-      //printf("test timestep %d: GEMM(%d, %d)\n", K, m, I);
-    }
+
 
     if(write == 1)
       ttg::send<2>(Key2(I, J), tile_gemm, out); // Write back
@@ -289,7 +280,6 @@ auto make_gemm(DistMatrix<T>& A,
       {
         tile_ij.fill(0);
         fill_flag = 1;
-        //tile_ij.print_block();
       }
 
         int info = 0;
@@ -297,11 +287,7 @@ auto make_gemm(DistMatrix<T>& A,
         //cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasTrans, wT, wT, wT, 
 			  //  -1.0, tile_ik.data(), wT, tile_jk.data(), wT, 1.0, tile_ij.data(), wT);
     }
-    else
-    {
-      printf("GEMM Sparse \n");
-    }
-
+    
 
     if(fill_flag == 1)
         ttg::send<3>(Key2(K, K), tile_ij, out); // Write back the filled block
@@ -345,9 +331,6 @@ auto make_result(DistMatrix<T>& A, const ttg::Edge<Key2, BlockMatrix<T>>& result
   auto f = [=](const Key2& key, BlockMatrix<T>&& tile, std::tuple<>& out) {
     const int I = key.I;
     const int J = key.J;
-
-    if(A.is_empty(I, J))
-      A.fill(I, J, 0);
     BlockMatrix<T>& current_tile = A(I, J);
 
     if(current_tile != tile) 
@@ -373,41 +356,21 @@ auto make_initiator(DistMatrix<T>& A,
                           ttg::Out<Key2, BlockMatrix<T>>,
                           ttg::Out<Key3, BlockMatrix<T>>>& out){
 
-    BlockMatrix<T> sparse(A.t_rows(), A.t_cols());
-    sparse.set_empty();
-
     /* kick off first POTRF */
-
     if (A.is_local(0, 0)) 
-    {
       ttg::send<0>(Key1(0), A(0, 0), out);
-    }
 
-    
-  
     for (int i = 1; i < A.rows(); i++) 
     {
       /* send gemm input to TRSM */
       if (A.is_local(i, 0)) 
-      {
-        if(!A.is_empty(i, 0))
           ttg::send<1>(Key2(i, 0), A(i, 0), out);
-        else
-          ttg::send<1>(Key2(i, 0), sparse, out);
-      }
       
-      for (int j = 1; j <= i; j++) {
+      for (int j = 1; j <= i; j++) 
+      {
         /* send gemm to GEMM */
         if (A.is_local(i, j)) 
-        {
-          if(!A.is_empty(i, j))
-            ttg::send<2>(Key3(i, j, 0), A(i, j), out);
-          else
-          {
-            ttg::send<2>(Key3(i, j, 0), sparse, out);
-            printf("Init Sparse \n");
-          }
-        }
+          ttg::send<2>(Key3(i, j, 0), A(i, j), out);
       }
     }
   };
