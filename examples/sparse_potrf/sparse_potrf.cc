@@ -151,7 +151,7 @@ auto make_potrf(DistMatrix<T>& A,
                                 ttg::Out<Key2, BlockMatrix<T>>>& out){
     const int K = key.K;
 
-    printf("timestep %d: POTRF(%d) \n", K, K);
+    //printf("timestep %d: POTRF(%d) \n", K, K);
  
     int info = 0;
     int wT = tile_gemm.rows();
@@ -197,7 +197,7 @@ auto make_trsm(DistMatrix<T>& A,
     const int K = key.J; 
     int write = 0;
 
-    printf("timestep %d: TRSM(%d, %d)\n", K, I, J);
+    //printf("timestep %d: TRSM(%d, %d)\n", K, I, J);
 
     
     if(!tile_gemm.is_empty())
@@ -207,6 +207,8 @@ auto make_trsm(DistMatrix<T>& A,
       //cblas_dtrsm(CblasRowMajor, CblasRight, CblasLower, CblasTrans, 
 		  //  CblasNonUnit, wT, wT, 1.0, tile_potrf.data(), wT, tile_gemm.data(), wT);
     }
+    //else
+    //  printf("SparseTRSM \n");
    
 
     // send the tile to  gemms (ik of that gemm) 
@@ -271,7 +273,7 @@ auto make_gemm(DistMatrix<T>& A,
     const int K = key.K;
     int fill_flag = 0;
 
-    printf("timestep %d: GEMM(%d, %d)\n", K, I, J);
+    //printf("timestep %d: GEMM(%d, %d)\n", K, I, J);
 
 
     if(!tile_ik.is_empty() && !tile_jk.is_empty())
@@ -287,6 +289,8 @@ auto make_gemm(DistMatrix<T>& A,
         //cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasTrans, wT, wT, wT, 
 			  //  -1.0, tile_ik.data(), wT, tile_jk.data(), wT, 1.0, tile_ij.data(), wT);
     }
+    //else
+    //  printf("SparseGEMM \n");
     
 
     if(fill_flag == 1)
