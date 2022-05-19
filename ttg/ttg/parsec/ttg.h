@@ -618,7 +618,7 @@ namespace ttg_parsec {
         migrate_data(parsec_task, dst, std::make_index_sequence<numins>{});
 
         auto &world_impl = world.impl();
-        world_impl.taskpool()->tdm.module->taskpool_addto_nb_tasks(world_impl.taskpool(), -1);
+        //world_impl.taskpool()->tdm.module->taskpool_addto_nb_tasks(world_impl.taskpool(), -1);
       }
       
     }
@@ -846,6 +846,7 @@ namespace ttg_parsec {
         newtask = (detail::my_op_t *)parsec_thread_mempool_allocate(mempool);
 
         newtask->gran_function_ptr[0] = nullptr;
+        //future_task_inc();
 
         memset((void *)newtask, 0, sizeof(detail::my_op_t));
         newtask->parsec_task.mempool_owner = mempool;
@@ -936,13 +937,45 @@ namespace ttg_parsec {
         if constexpr (!ttg::meta::is_void_v<Key>)
           owner = keymap(key);
         if (owner != ttg_default_execution_context().rank()) //migrated task
+        {
           recv_task_inc();
 
+          int rank = 0;
+          MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+          //printf("Node %d Time %lf Ready %d Migratable %d WaitingTime %lf \n", 
+          //    rank, MPI_Wtime()-get_start_time(), get_ready_task(), get_migrateable_task(), avg_waiting_time());
+
+          //printf("MIGode %d TimeActual %lf ReadyActual %d\n", 
+          //  rank, MPI_Wtime() - get_start_time(), get_ready_task());
+          //fflush(stdout);
+        }
+        if(self.dependencies_goal > 1)
+          future_task_dec();
+          
         __parsec_schedule(es, &task->parsec_task, 0);
+
+        //int rank = 0;
+        //MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+        double _exec_time = MPI_Wtime() - get_start_time();
+        int _executed_tasks = get_exec_task();
+        int _ready_tasks = get_ready_task();
+        //printf("Node %d Time %lf Ready %d Future %d Migratable %d WaitingTime %lf AvgExecTime %lf TimeToStarve %lf\n", 
+        //    rank, _exec_time, _ready_tasks, get_future_task(),
+        //    get_migrateable_task(), avg_waiting_time(), _exec_time/_executed_tasks,
+        //    ((_ready_tasks / 40) * (_exec_time/_executed_tasks)) );
+
+        //predict_ready_tasks(1.377398 );
+        //predict_ready_tasks(_exec_time / _executed_tasks 
+        //                    + (_ready_tasks / 40) * (_exec_time / _executed_tasks)
+        //                    + 0.005243);
 //
         //}
 
         
+      }
+      else if(count == (self.dependencies_goal -1))
+      {
+        future_task_inc();
       }
     }
 
